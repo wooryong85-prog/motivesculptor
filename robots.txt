@@ -11,3 +11,4 @@ User-agent: ChatGPT-User
 Allow: /
 
 Sitemap: https://motivegym.co.kr/sitemap.xml
+Sitemap: https://motivegym.co.kr/sitemap.txt
