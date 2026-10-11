@@ -79,7 +79,8 @@
           "itemListElement": [
             {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "BODY RESET PT", "description": "움직임과 기초 근력을 현재 가능한 범위에서 다시 쌓는 1:1 PT"}},
             {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "CONDITION PT", "description": "체력저하를 느끼는 분을 위한 근력·심폐 체력 중심의 1:1 PT"}},
-            {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "BODY SHAPE PT", "description": "체형·근육량·운동 습관을 함께 살피는 1:1 PT"}}
+            {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "BODY SHAPE PT", "description": "체형·근육량·운동 습관을 함께 살피는 1:1 PT"}},
+            {"@type": "Offer", "url": "https://motivegym.co.kr/senior-pt/", "itemOffered": {"@type": "Service", "name": "SENIOR PT", "description": "50대 이후 운동 재시작을 위해 일상 기능, 근력, 균형과 가동성을 단계적으로 다루는 1:1 PT"}}
           ]
         }
       },
@@ -180,14 +181,16 @@
 
     .programs{background:var(--ivory);padding:102px 0}
     .programs h2{margin:0 0 55px;font-size:clamp(38px,4.5vw,64px);line-height:1.12;letter-spacing:-.06em}
-    .program-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-    .program-card{position:relative;min-height:480px;padding:36px 30px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#fff;border:1px solid #dedbd7}
+    .program-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .program-card{position:relative;min-height:460px;padding:34px 24px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#fff;border:1px solid #dedbd7}
     .program-card.dark{background:#101010;color:#fff;border-color:#101010}.program-card.orange{background:var(--orange);color:#fff;border-color:var(--orange)}
+    .program-card.senior{border-color:var(--orange);box-shadow:inset 0 5px 0 var(--orange);transition:transform .2s,box-shadow .2s}.program-card.senior:hover{transform:translateY(-5px);box-shadow:inset 0 5px 0 var(--orange),0 16px 34px rgba(0,0,0,.1)}
     .program-card:before,.program-card:after{content:"";position:absolute;border:1px solid currentColor;border-radius:50%;opacity:.14}
     .program-card:before{width:330px;height:330px;right:-175px;top:-120px}.program-card:after{width:170px;height:170px;right:-65px;top:10px}
     .program-no{position:relative;z-index:1;font-family:Georgia,serif;font-size:20px;font-style:italic}
-    .program-card h3{position:relative;z-index:1;margin:0 0 16px;font-size:33px;line-height:1.08;letter-spacing:-.055em}.program-card h3 small{display:block;margin-bottom:10px;font-size:10px;letter-spacing:.15em}
+    .program-card h3{position:relative;z-index:1;margin:0 0 16px;font-size:clamp(26px,2.25vw,33px);line-height:1.08;letter-spacing:-.055em}.program-card h3 small{display:block;margin-bottom:10px;font-size:10px;letter-spacing:.15em}
     .program-card p{position:relative;z-index:1;margin:0;font-size:14px;line-height:1.75;word-break:keep-all;opacity:.76}
+    .program-more{position:relative;z-index:1;display:inline-block;margin-top:22px;padding-bottom:3px;border-bottom:1px solid var(--orange);color:var(--orange);font-size:11px;font-weight:900;letter-spacing:.04em}
 
     .audience{padding:104px 0;background:#fff}
     .audience-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:100px;align-items:start}
@@ -253,11 +256,12 @@
     .mobile-bar{display:none;position:fixed;z-index:150;left:0;right:0;bottom:0;padding:9px 11px calc(9px + env(safe-area-inset-bottom));background:rgba(9,9,9,.95);gap:8px}.mobile-bar a{flex:1;min-height:48px;display:flex;align-items:center;justify-content:center;color:#fff;border:1px solid rgba(255,255,255,.35);font-size:12px;font-weight:800}.mobile-bar a:last-child{background:var(--orange);border-color:var(--orange)}
     .reveal{opacity:1;transform:none}
 
+    @media(max-width:1100px){.program-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.program-card{min-height:400px}}
     @media(max-width:900px){
-      .header-side>a:first-child{display:none}.nav{gap:24px;overflow:auto;justify-content:flex-start;padding-inline:24px}.hero{min-height:720px}.program-grid{grid-template-columns:1fr}.program-card{min-height:370px}.audience-grid{grid-template-columns:1fr;gap:45px}.audience h2{position:static}.story{grid-template-columns:1fr}.story-photo{min-height:520px}.story-photo img{min-height:520px}.greeting-grid{grid-template-columns:1fr;gap:55px}.greeting-visual{position:static}.greeting-visual img{aspect-ratio:16/10}.method .steps{grid-template-columns:repeat(2,1fr)}.step:nth-child(3){border-left:0;border-top:1px solid var(--line)}.step:nth-child(4){border-top:1px solid var(--line)}.entity-heading{grid-template-columns:1fr;gap:24px}.fact-grid{grid-template-columns:repeat(2,1fr)}.fact:nth-child(3){border-left:0;border-top:1px solid rgba(255,255,255,.2)}.fact:nth-child(4){border-top:1px solid rgba(255,255,255,.2)}.visit-grid{gap:55px}.faq-grid{grid-template-columns:1fr;gap:40px}
+      .header-side>a:first-child{display:none}.nav{gap:24px;overflow:auto;justify-content:flex-start;padding-inline:24px}.hero{min-height:720px}.program-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.program-card{min-height:370px}.audience-grid{grid-template-columns:1fr;gap:45px}.audience h2{position:static}.story{grid-template-columns:1fr}.story-photo{min-height:520px}.story-photo img{min-height:520px}.greeting-grid{grid-template-columns:1fr;gap:55px}.greeting-visual{position:static}.greeting-visual img{aspect-ratio:16/10}.method .steps{grid-template-columns:repeat(2,1fr)}.step:nth-child(3){border-left:0;border-top:1px solid var(--line)}.step:nth-child(4){border-top:1px solid var(--line)}.entity-heading{grid-template-columns:1fr;gap:24px}.fact-grid{grid-template-columns:repeat(2,1fr)}.fact:nth-child(3){border-left:0;border-top:1px solid rgba(255,255,255,.2)}.fact:nth-child(4){border-top:1px solid rgba(255,255,255,.2)}.visit-grid{gap:55px}.faq-grid{grid-template-columns:1fr;gap:40px}
     }
     @media(max-width:620px){
-      body:before{height:6px}.site-header{padding-top:6px}.wrap{width:min(calc(100% - 30px),var(--max))}.header-main{height:68px}.official-logo{width:170px;height:43px}.header-side{right:0}.reserve-link{font-size:10px;padding:9px 10px}.nav{height:42px;gap:22px;font-size:10px}.nav a:nth-child(n+6){display:none}.hero{min-height:660px}.hero-content{padding-bottom:48px}.hero h1{font-size:43px}.hero h1 .hero-kicker span{display:block}.hero p{font-size:14px}.hero-actions .button{min-width:132px;padding-inline:14px}.intro{padding:78px 0}.intro h2{font-size:38px}.intro-copy{font-size:15px}.pillars{grid-template-columns:1fr;margin-top:40px}.pillar+.pillar{border-left:0;border-top:1px solid var(--line)}.feature{min-height:610px}.feature h2{font-size:36px}.programs,.audience,.greeting,.method,.entity,.visit{padding:78px 0}.programs h2,.method h2{font-size:39px}.program-card{min-height:350px;padding:30px 24px}.audience h2{font-size:39px}.signal{grid-template-columns:48px 1fr}.story-photo,.story-photo img{min-height:390px}.story-copy{padding:65px 20px}.story h2{font-size:39px}.story .lead{font-size:16px}.coach-line{align-items:flex-start;flex-direction:column}.coach-line span{text-align:left}.credentials{grid-template-columns:1fr}.greeting-grid{gap:38px}.greeting-visual img{aspect-ratio:4/3}.greeting-copy h2{font-size:39px}.greeting-quote{font-size:23px}.greeting-body{font-size:15px}.greeting-sign{align-items:flex-start;flex-direction:column}.method .steps{grid-template-columns:1fr}.step{min-height:210px}.step+.step,.step:nth-child(3){border-left:0;border-top:1px solid var(--line)}.entity h2{font-size:39px}.fact-grid{grid-template-columns:1fr}.fact+.fact,.fact:nth-child(3){border-left:0;border-top:1px solid rgba(255,255,255,.2)}.fact{min-height:0}.fact b{margin-bottom:20px}.visit-grid{grid-template-columns:1fr}.visit h2{font-size:40px}.faq{padding:78px 0}.faq h2{font-size:39px}.closing{padding:80px 0}.closing h2{font-size:43px}.mobile-bar{display:flex}footer{padding-bottom:104px}
+      body:before{height:6px}.site-header{padding-top:6px}.wrap{width:min(calc(100% - 30px),var(--max))}.header-main{height:68px}.official-logo{width:170px;height:43px}.header-side{right:0}.reserve-link{font-size:10px;padding:9px 10px}.nav{height:42px;gap:22px;font-size:10px}.nav a:nth-child(n+6){display:none}.hero{min-height:660px}.hero-content{padding-bottom:48px}.hero h1{font-size:43px}.hero h1 .hero-kicker span{display:block}.hero p{font-size:14px}.hero-actions .button{min-width:132px;padding-inline:14px}.intro{padding:78px 0}.intro h2{font-size:38px}.intro-copy{font-size:15px}.pillars{grid-template-columns:1fr;margin-top:40px}.pillar+.pillar{border-left:0;border-top:1px solid var(--line)}.feature{min-height:610px}.feature h2{font-size:36px}.programs,.audience,.greeting,.method,.entity,.visit{padding:78px 0}.programs h2,.method h2{font-size:39px}.program-grid{grid-template-columns:1fr}.program-card{min-height:350px;padding:30px 24px}.audience h2{font-size:39px}.signal{grid-template-columns:48px 1fr}.story-photo,.story-photo img{min-height:390px}.story-copy{padding:65px 20px}.story h2{font-size:39px}.story .lead{font-size:16px}.coach-line{align-items:flex-start;flex-direction:column}.coach-line span{text-align:left}.credentials{grid-template-columns:1fr}.greeting-grid{gap:38px}.greeting-visual img{aspect-ratio:4/3}.greeting-copy h2{font-size:39px}.greeting-quote{font-size:23px}.greeting-body{font-size:15px}.greeting-sign{align-items:flex-start;flex-direction:column}.method .steps{grid-template-columns:1fr}.step{min-height:210px}.step+.step,.step:nth-child(3){border-left:0;border-top:1px solid var(--line)}.entity h2{font-size:39px}.fact-grid{grid-template-columns:1fr}.fact+.fact,.fact:nth-child(3){border-left:0;border-top:1px solid rgba(255,255,255,.2)}.fact{min-height:0}.fact b{margin-bottom:20px}.visit-grid{grid-template-columns:1fr}.visit h2{font-size:40px}.faq{padding:78px 0}.faq h2{font-size:39px}.closing{padding:80px 0}.closing h2{font-size:43px}.mobile-bar{display:flex}footer{padding-bottom:104px}
     }
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}.button{transition:none}}
   </style>
@@ -304,6 +308,7 @@
           <article class="program-card"><div class="program-no">01</div><div><h3><small>MOVEMENT · FOUNDATION</small>BODY RESET PT</h3><p>목·어깨·허리의 불편함 때문에 운동이 부담스러운 분을 위한 시작 프로그램입니다. 움직임과 기초 근력을 함께 다룹니다.</p></div></article>
           <article class="program-card dark"><div class="program-no">02</div><div><h3><small>ENERGY · STAMINA</small>CONDITION PT</h3><p>만성피로와 체력저하를 느끼는 분을 위해 근력과 심폐 체력을 현재 수준에 맞춰 단계적으로 높입니다.</p></div></article>
           <article class="program-card orange"><div class="program-no">03</div><div><h3><small>SHAPE · HABIT</small>BODY SHAPE PT</h3><p>체형, 근육량, 체지방과 운동 습관을 함께 살펴 지속 가능한 몸 관리를 계획합니다.</p></div></article>
+          <a class="program-card senior" href="senior-pt/" aria-label="50대 이후 운동 재시작을 위한 SENIOR PT 자세히 보기"><div class="program-no">04</div><div><h3><small>DAILY FUNCTION · BALANCE</small>SENIOR PT</h3><p>50대 이후 운동을 다시 시작하는 분을 위해 일상 기능, 근력, 균형과 가동성을 현재 수준에 맞춰 차근차근 다룹니다.</p><span class="program-more">자세히 보기 →</span></div></a>
         </div>
       </div>
     </section>
@@ -386,3 +391,4 @@
   </script>
 </body>
 </html>
+
