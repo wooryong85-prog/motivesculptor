@@ -182,7 +182,7 @@
 
     .programs{background:var(--ivory);padding:102px 0}
     .programs h2{margin:0 0 55px;font-size:clamp(38px,4.5vw,64px);line-height:1.12;letter-spacing:-.06em}
-    .program-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .program-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:14px}
     .program-card{position:relative;min-height:460px;padding:34px 24px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#fff;border:1px solid #dedbd7;transition:transform .2s,box-shadow .2s,border-color .2s}
     .program-card.dark{background:#101010;color:#fff;border-color:#101010}.program-card.orange{background:var(--orange);color:#fff;border-color:var(--orange)}
     .program-card.senior{border-color:var(--orange);box-shadow:inset 0 5px 0 var(--orange)}.program-card:hover,.program-card:focus-visible{transform:translateY(-5px);box-shadow:0 16px 34px rgba(0,0,0,.1);outline:none}.program-card.senior:hover,.program-card.senior:focus-visible{box-shadow:inset 0 5px 0 var(--orange),0 16px 34px rgba(0,0,0,.1)}
@@ -192,7 +192,7 @@
     .program-card h3{position:relative;z-index:1;margin:0 0 16px;font-size:clamp(26px,2.25vw,33px);line-height:1.08;letter-spacing:-.055em}.program-card h3 small{display:block;margin-bottom:10px;font-size:10px;letter-spacing:.15em}
     .program-card p{position:relative;z-index:1;margin:0;font-size:14px;line-height:1.75;word-break:keep-all;opacity:.76}
     .program-more{position:relative;z-index:1;display:inline-block;margin-top:22px;padding-bottom:3px;border-bottom:1px solid var(--orange);color:var(--orange);font-size:11px;font-weight:900;letter-spacing:.04em}.program-card.dark .program-more,.program-card.orange .program-more{border-color:currentColor;color:inherit}
-    .program-card.medication{grid-column:1/-1;min-height:360px;background:#111 url('assets/motivegym-interior-02.jpg') center 55%/cover no-repeat;color:#fff;border-color:#111}.program-card.medication:before{display:none}.program-card.medication:after{inset:0;width:auto;height:auto;right:0;top:0;border:0;border-radius:0;opacity:1;background:linear-gradient(90deg,rgba(0,0,0,.94),rgba(0,0,0,.79) 52%,rgba(0,0,0,.22))}.program-card.medication h3{font-size:clamp(30px,3.3vw,46px)}.program-card.medication p{max-width:650px;color:#fff;opacity:.9}.program-card.medication .program-more{color:#fff;border-color:#fff}
+    .program-card.medication{background:#111 url('assets/motivegym-interior-02.jpg') center 55%/cover no-repeat;color:#fff;border-color:#111}.program-card.medication:before{display:none}.program-card.medication:after{inset:0;width:auto;height:auto;right:0;top:0;border:0;border-radius:0;opacity:1;background:linear-gradient(90deg,rgba(0,0,0,.94),rgba(0,0,0,.79) 52%,rgba(0,0,0,.22))}.program-card.medication p{max-width:650px;color:#fff;opacity:.9}.program-card.medication .program-more{color:#fff;border-color:#fff}
 
     .audience{padding:104px 0;background:#fff}
     .audience-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:100px;align-items:start}
@@ -275,7 +275,7 @@
       <a class="official-logo" href="#top" aria-label="모티브짐 성복점 홈"><img src="assets/motivegym-logo-header.png" alt="Motive Gym" width="339" height="85"></a>
       <div class="header-side"><a href="tel:0312667744">031-266-7744</a><a class="reserve-link" href="https://m.booking.naver.com/booking/6/bizes/1210623/items/8076905" target="_blank" rel="noopener noreferrer">체험 예약</a></div>
     </div>
-    <nav class="nav" aria-label="주 메뉴"><a href="#condition">CONDITIONING</a><a href="#program">PROGRAM</a><a href="#about">ABOUT</a><a href="#method">METHOD</a><a href="#information">INFO</a><a href="#visit">VISIT</a><a href="#faq">FAQ</a></nav>
+    <nav class="nav" aria-label="주 메뉴"><a href="#about">ABOUT</a><a href="#program">PROGRAM</a><a href="#method">METHOD</a><a href="#information">INFO</a><a href="#visit">VISIT</a><a href="#faq">FAQ</a></nav>
   </header>
 
   <main id="main">
@@ -285,27 +285,25 @@
         <p class="label">성복동 1:1 PT 모티브짐</p>
         <h1 id="hero-title"><span class="hero-kicker"><span>오늘보다 편하게.</span></span><span class="hero-accent">다시 잘 움직이게.</span></h1>
         <p>Movement · Strength · Conditioning</p>
-        <div class="hero-actions"><a class="button button-light" href="#condition">자세히 보기</a><a class="button button-orange" href="https://m.booking.naver.com/booking/6/bizes/1210623/items/8076905" target="_blank" rel="noopener noreferrer">50분 체험 예약</a></div>
+        <div class="hero-actions"><a class="button button-light" href="#about">자세히 보기</a><a class="button button-orange" href="https://m.booking.naver.com/booking/6/bizes/1210623/items/8076905" target="_blank" rel="noopener noreferrer">50분 체험 예약</a></div>
       </div>
     </section>
 
-    <section class="intro center" id="condition">
-      <div class="wrap reveal">
-        <p class="label orange">MOTIVE CONDITIONING</p>
-        <h2>몸의 컨디션을 다시 끌어올리는 운동.</h2>
-        <p class="intro-copy">목·허리·어깨가 자주 불편하고, 쉬어도 피곤하고, 운동을 다시 시작하기 막막하다면. 숫자만 줄이는 운동보다 일상에서 덜 지치고 더 편하게 움직이는 변화를 먼저 봅니다.</p>
-        <div class="pillars" aria-label="운동의 세 가지 기준"><div class="pillar"><b>Movement</b><span>어떻게 움직이는가</span></div><div class="pillar"><b>Strength</b><span>어떻게 힘을 쓰는가</span></div><div class="pillar"><b>Conditioning</b><span>어떻게 이어가는가</span></div></div>
-      </div>
+    <section class="story" id="about">
+      <div class="story-photo"><img src="assets/motivegym-interior-01.jpg" alt="모티브짐 성복점의 운동 공간" width="1280" height="960"><p class="story-caption">MOTIVE GYM SEONGBOK<br>MOVEMENT · STRENGTH · CONDITIONING</p></div>
+      <div class="story-copy reveal"><p class="label orange">01 / ABOUT MOTIVE GYM</p><h2>좋은 운동 경험을<br>만드는 기준.</h2><p class="lead">모티브짐은 한 사람 한 사람의 이야기를 듣고 현재의 움직임과 체력을 살핍니다. 그날의 컨디션과 목표에 맞춰 수업을 계획하고, 변화를 살피며 조정합니다.</p><div class="credentials"><div class="credential">세심한 상담과 확인</div><div class="credential">개인에게 맞춘 지도</div><div class="credential">꾸준한 기록과 조정</div></div><p class="fine">모티브짐의 운동 지도는 의료적 진단이나 치료를 대신하지 않습니다. 통증이 심하거나 의학적 판단이 필요한 경우 의료기관 상담을 먼저 권합니다.</p></div>
     </section>
 
-    <section class="feature" aria-labelledby="reset-title">
-      <img src="assets/motivegym-interior-02.jpg" alt="모티브짐의 근력 운동 장비와 상담 공간" width="1280" height="960">
-      <div class="feature-content reveal"><p class="label">BODY RESET PT</p><h2 id="reset-title">움직임이 굳고 운동이 망설여질 때.</h2><p>현재 가능한 움직임을 살피고 가동성과 기초 근력을 함께 쌓습니다. 무리하지 않는 강도에서 다시 움직이는 자신감을 만듭니다.</p><a class="button button-light" href="#program">프로그램 보기</a></div>
+    <section class="greeting" aria-labelledby="greeting-title">
+      <div class="wrap greeting-grid">
+        <figure class="greeting-visual reveal"><img src="assets/kim-minjun-founder.webp" alt="모티브짐 김민준 대표" width="1279" height="1553"><figcaption><span>KIM MINJUN · FOUNDER</span><span>SEONGBOK · YONGIN</span></figcaption></figure>
+        <div class="greeting-copy reveal"><p class="label orange">FROM THE FOUNDER</p><h2 id="greeting-title">김민준 대표의<br>인사말.</h2><p class="greeting-quote">“운동이 제 삶을 바꿔준 것처럼, 여러분께도 좋은 경험으로 남기를 바랍니다.”</p><div class="greeting-body"><p>안녕하세요. 모티브짐 대표 김민준입니다.</p><p>운동은 제 인생을 바꿔준 가장 고마운 존재입니다. 저에게는 어떻게 보면 종교와도 같은, 삶을 지탱해 주는 소중한 의미를 지니고 있습니다.</p><p>제가 운동을 통해 얻은 좋은 변화와 경험을 모티브짐을 찾아주시는 고객님들께도 전해드리고 싶습니다. 한 분 한 분의 이야기에 귀 기울이고, 각자의 몸과 목표에 맞춰 정직하고 바르게 지도하겠습니다.</p><p>모티브짐에서의 시간이 여러분의 삶에 오래도록 좋은 경험으로 남을 수 있도록 진심을 다하겠습니다.</p></div><div class="greeting-sign"><b>김민준 · 모티브짐 대표</b><span>Movement · Strength · Conditioning</span></div></div>
+      </div>
     </section>
 
     <section class="programs" id="program">
       <div class="wrap">
-        <div class="center reveal"><p class="label orange">01 / PROGRAM</p><h2>한 사람의 몸에, 하나의 계획.</h2></div>
+        <div class="center reveal"><p class="label orange">02 / PROGRAM</p><h2>한 사람의 몸에, 하나의 계획.</h2></div>
         <div class="program-grid reveal">
           <a class="program-card" href="body-reset-pt/" aria-label="목·어깨·허리 불편 후 운동 재시작을 위한 BODY RESET PT 자세히 보기"><div class="program-no">01</div><div><h3><small>MOVEMENT · FOUNDATION</small>BODY RESET PT</h3><p>목·어깨·허리의 불편함 때문에 운동이 부담스러운 분을 위한 시작 프로그램입니다. 움직임과 기초 근력을 함께 다룹니다.</p><span class="program-more">자세히 보기 →</span></div></a>
           <a class="program-card dark" href="condition-pt/" aria-label="체력저하와 운동 재시작을 위한 CONDITION PT 자세히 보기"><div class="program-no">02</div><div><h3><small>ENERGY · STAMINA</small>CONDITION PT</h3><p>쉽게 지치고 체력저하를 느끼는 분을 위해 근력과 심폐 체력을 현재 수준에 맞춰 단계적으로 높입니다.</p><span class="program-more">자세히 보기 →</span></div></a>
@@ -316,37 +314,38 @@
       </div>
     </section>
 
-    <section class="audience">
-      <div class="wrap audience-grid">
-        <div class="reveal"><p class="label orange">02 / FOR YOU</p><h2>지금 이런 몸이라면<br>시작할 때입니다.</h2></div>
-        <div class="signal-list reveal">
-          <article class="signal"><b>01</b><div><h3>목과 어깨가 자주 뻐근할 때</h3><p>하루 종일 앉아 있거나 같은 자세가 이어져 움직임이 굳은 분.</p></div></article>
-          <article class="signal"><b>02</b><div><h3>허리가 불편해 운동이 망설여질 때</h3><p>무작정 강도를 높이기보다 가능한 범위에서 안전하게 움직임을 익히고 싶은 분.</p></div></article>
-          <article class="signal"><b>03</b><div><h3>쉬어도 피곤하고 체력이 떨어졌을 때</h3><p>바쁜 일상 속에서 기초 체력과 근력을 차근차근 되찾고 싶은 분.</p></div></article>
-          <article class="signal"><b>04</b><div><h3>오랜만에 운동을 다시 시작할 때</h3><p>무엇부터 해야 할지 막막하고 혼자 꾸준히 하기 어려웠던 분.</p></div></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="story" id="about">
-      <div class="story-photo"><img src="assets/motivegym-interior-01.jpg" alt="모티브짐 성복점의 운동 공간" width="1280" height="960"><p class="story-caption">MOTIVE GYM SEONGBOK<br>MOVEMENT · STRENGTH · CONDITIONING</p></div>
-      <div class="story-copy reveal"><p class="label orange">03 / THE MOTIVE STANDARD</p><h2>좋은 운동 경험을<br>만드는 기준.</h2><p class="lead">모티브짐은 한 사람 한 사람의 이야기를 듣고 현재의 움직임과 체력을 살핍니다. 그날의 컨디션과 목표에 맞춰 수업을 계획하고, 변화를 살피며 조정합니다.</p><div class="credentials"><div class="credential">세심한 상담과 확인</div><div class="credential">개인에게 맞춘 지도</div><div class="credential">꾸준한 기록과 조정</div></div><p class="fine">모티브짐의 운동 지도는 의료적 진단이나 치료를 대신하지 않습니다. 통증이 심하거나 의학적 판단이 필요한 경우 의료기관 상담을 먼저 권합니다.</p></div>
-    </section>
-
-    <section class="greeting" aria-labelledby="greeting-title">
-      <div class="wrap greeting-grid">
-        <figure class="greeting-visual reveal"><img src="assets/kim-minjun-founder.webp" alt="모티브짐 김민준 대표" width="1279" height="1553"><figcaption><span>KIM MINJUN · FOUNDER</span><span>SEONGBOK · YONGIN</span></figcaption></figure>
-        <div class="greeting-copy reveal"><p class="label orange">04 / FROM THE FOUNDER</p><h2 id="greeting-title">김민준 대표의<br>인사말.</h2><p class="greeting-quote">“운동이 제 삶을 바꿔준 것처럼, 여러분께도 좋은 경험으로 남기를 바랍니다.”</p><div class="greeting-body"><p>안녕하세요. 모티브짐 대표 김민준입니다.</p><p>운동은 제 인생을 바꿔준 가장 고마운 존재입니다. 저에게는 어떻게 보면 종교와도 같은, 삶을 지탱해 주는 소중한 의미를 지니고 있습니다.</p><p>제가 운동을 통해 얻은 좋은 변화와 경험을 모티브짐을 찾아주시는 고객님들께도 전해드리고 싶습니다. 한 분 한 분의 이야기에 귀 기울이고, 각자의 몸과 목표에 맞춰 정직하고 바르게 지도하겠습니다.</p><p>모티브짐에서의 시간이 여러분의 삶에 오래도록 좋은 경험으로 남을 수 있도록 진심을 다하겠습니다.</p></div><div class="greeting-sign"><b>김민준 · 모티브짐 대표</b><span>Movement · Strength · Conditioning</span></div></div>
-      </div>
-    </section>
-
     <section class="method" id="method">
-      <div class="wrap"><div class="center reveal"><p class="label orange">05 / METHOD</p><h2>평가하고, 움직이고, 기록하며 조정합니다.</h2></div>
+    <div class="intro center" id="condition">
+      <div class="wrap reveal">
+        <p class="label orange">MOVEMENT · STRENGTH · CONDITIONING</p>
+        <h2>몸의 컨디션을 다시 끌어올리는 운동.</h2>
+        <p class="intro-copy">목·허리·어깨가 자주 불편하고, 쉬어도 피곤하고, 운동을 다시 시작하기 막막하다면. 숫자만 줄이는 운동보다 일상에서 덜 지치고 더 편하게 움직이는 변화를 먼저 봅니다.</p>
+        <div class="pillars" aria-label="운동의 세 가지 기준"><div class="pillar"><b>Movement</b><span>어떻게 움직이는가</span></div><div class="pillar"><b>Strength</b><span>어떻게 힘을 쓰는가</span></div><div class="pillar"><b>Conditioning</b><span>어떻게 이어가는가</span></div></div>
+      </div>
+    </div>
+      <div class="wrap"><div class="center reveal"><p class="label orange">03 / METHOD</p><h2>평가하고, 움직이고, 기록하며 조정합니다.</h2></div>
         <div class="steps reveal">
           <article class="step"><b>01</b><h3>컨디션 대화</h3><p>생활 패턴, 운동 경험, 불편하게 느끼는 움직임과 원하는 변화를 듣습니다.</p></article>
           <article class="step"><b>02</b><h3>움직임 확인</h3><p>현재 가능한 움직임과 기본 동작을 확인해 수업의 출발점을 정합니다.</p></article>
           <article class="step"><b>03</b><h3>근력·체력 훈련</h3><p>무리하지 않는 강도에서 필요한 근력과 체력을 단계적으로 쌓습니다.</p></article>
           <article class="step"><b>04</b><h3>기록과 조정</h3><p>수행 기록과 몸의 반응을 확인하고 다음 수업의 계획을 조정합니다.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature" aria-labelledby="reset-title">
+      <img src="assets/motivegym-interior-02.jpg" alt="모티브짐의 근력 운동 장비와 상담 공간" width="1280" height="960">
+      <div class="feature-content reveal"><p class="label">BODY RESET PT</p><h2 id="reset-title">움직임이 굳고 운동이 망설여질 때.</h2><p>현재 가능한 움직임을 살피고 가동성과 기초 근력을 함께 쌓습니다. 무리하지 않는 강도에서 다시 움직이는 자신감을 만듭니다.</p><a class="button button-light" href="#program">프로그램 보기</a></div>
+    </section>
+
+    <section class="audience">
+      <div class="wrap audience-grid">
+        <div class="reveal"><p class="label orange">FOR YOU</p><h2>지금 이런 몸이라면<br>시작할 때입니다.</h2></div>
+        <div class="signal-list reveal">
+          <article class="signal"><b>01</b><div><h3>목과 어깨가 자주 뻐근할 때</h3><p>하루 종일 앉아 있거나 같은 자세가 이어져 움직임이 굳은 분.</p></div></article>
+          <article class="signal"><b>02</b><div><h3>허리가 불편해 운동이 망설여질 때</h3><p>무작정 강도를 높이기보다 가능한 범위에서 안전하게 움직임을 익히고 싶은 분.</p></div></article>
+          <article class="signal"><b>03</b><div><h3>쉬어도 피곤하고 체력이 떨어졌을 때</h3><p>바쁜 일상 속에서 기초 체력과 근력을 차근차근 되찾고 싶은 분.</p></div></article>
+          <article class="signal"><b>04</b><div><h3>오랜만에 운동을 다시 시작할 때</h3><p>무엇부터 해야 할지 막막하고 혼자 꾸준히 하기 어려웠던 분.</p></div></article>
         </div>
       </div>
     </section>
@@ -394,3 +393,4 @@
   </script>
 </body>
 </html>
+
