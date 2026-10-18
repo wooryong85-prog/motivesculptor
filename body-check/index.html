@@ -36,7 +36,7 @@
 <button class="submit" type="submit">나의 신체 나이 확인하기 →</button>
 <p class="privacy">입력한 정보와 답변은 이 화면에서만 계산되며, 서버에 저장하거나 전송하지 않습니다. 페이지를 닫거나 새로고침하면 사라집니다.</p>
 </form>
-<section class="result" id="result" hidden aria-live="polite" tabindex="-1"><div class="label">YOUR BODY CHECK</div><h2><span id="result-name"></span>님의 신체 나이는?</h2><div class="fitness-age" id="fitness-age" hidden><span class="age-label">심폐 체력 비교 나이</span><strong class="age-value" id="age-value"></strong><div class="age-reaction" id="age-reaction" hidden><img id="age-image" alt="" width="132" height="132"><span id="age-caption"></span></div></div><p id="result-summary"></p><p id="focus"></p><p class="result-small">연령대별 심폐 체력 평균과 비교한 결과이며 개인차가 있습니다. 통증·근력·균형 답변은 계산에 포함되지 않습니다.</p><p class="result-small"><a href="https://pubmed.ncbi.nlm.nih.gov/16168867/" target="_blank" rel="noopener noreferrer">심폐 체력 연구</a> · <a href="https://www.ntnu.edu/cerg/fitness-numbers" target="_blank" rel="noopener noreferrer">연령별 평균 자료</a></p><div class="result-actions"><a href="https://m.booking.naver.com/booking/6/bizes/1210623/items/6558384" target="_blank" rel="noopener noreferrer">모티브짐 무료 상담 신청하기 →</a><a href="https://m.booking.naver.com/booking/6/bizes/1210623/items/8076905" target="_blank" rel="noopener noreferrer">모티브짐 체험하기 · 3만 원 →</a><button id="retry" type="button">다시 확인하기</button></div></section>
+<section class="result" id="result" hidden aria-live="polite" tabindex="-1"><div class="label">YOUR BODY CHECK</div><h2><span id="result-name"></span>님의 신체 나이는?</h2><div class="fitness-age" id="fitness-age" hidden><span class="age-label">심폐 체력 비교 나이</span><strong class="age-value" id="age-value"></strong><div class="age-reaction" id="age-reaction" hidden><img id="age-image" alt="" width="132" height="132"><span id="age-caption"></span></div></div><p id="result-summary"></p><p id="focus"></p><p class="result-small">연령대별 심폐 체력 평균과 비교한 참고 결과입니다. 비교 자료의 범위(25~65세)와 입력한 나이의 ±10세 범위로 표시값을 제한하며 개인차가 있습니다. 통증·근력·균형 답변은 계산에 포함되지 않습니다.</p><p class="result-small"><a href="https://pubmed.ncbi.nlm.nih.gov/16168867/" target="_blank" rel="noopener noreferrer">심폐 체력 연구</a> · <a href="https://www.ntnu.edu/cerg/fitness-numbers" target="_blank" rel="noopener noreferrer">연령별 평균 자료</a></p><div class="result-actions"><a href="https://m.booking.naver.com/booking/6/bizes/1210623/items/6558384" target="_blank" rel="noopener noreferrer">모티브짐 무료 상담 신청하기 →</a><a href="https://m.booking.naver.com/booking/6/bizes/1210623/items/8076905" target="_blank" rel="noopener noreferrer">모티브짐 체험하기 · 3만 원 →</a><button id="retry" type="button">다시 확인하기</button></div></section>
 </div></main><footer><div>© MOTIVE GYM SEONGBOK · 성복역 4번 출구 데이파크 C동 2층 206호</div></footer>
 <script>
 (function(){
@@ -64,21 +64,19 @@
       const bmi=weight/(height*height), activityCoefficients=[0,0.32,1.06,1.76,3.03];
       const estimated=(18.07+(male?2.77:0)-0.10*age-0.17*bmi-0.03*pulse+activityCoefficients[activity])*3.5;
       const averages=male?[54,49,47,42,39]:[43,40,38,34,31];
-      let label, relation='same';
+      let rawAge;
       if(estimated>=averages[0]) {
-        label='25세 이하';
-        if(age>25) relation='younger';
+        rawAge=25;
       } else if(estimated<=averages[4]) {
-        label='65세 이상';
-        if(age<65) relation='older';
+        rawAge=65;
       } else {
         let i=0;
         while(i<4 && estimated<averages[i+1])i++;
-        const interpolated=25+i*10+10*(averages[i]-estimated)/(averages[i]-averages[i+1]);
-        const comparisonAge=Math.round(interpolated);
-        label=comparisonAge+'세';
-        relation=comparisonAge<age?'younger':comparisonAge>age?'older':'same';
+        rawAge=25+i*10+10*(averages[i]-estimated)/(averages[i]-averages[i+1]);
       }
+      const comparisonAge=Math.max(age-10,Math.min(age+10,Math.round(rawAge)));
+      const label=comparisonAge+'세';
+      const relation=comparisonAge<age?'younger':comparisonAge>age?'older':'same';
       const reactions={younger:['../assets/body-check-happy.png','기분 좋은 변화예요'],same:['../assets/body-check-neutral.png','지금의 상태를 살펴봐요'],older:['../assets/body-check-sad.png','함께 차근차근 관리해요']};
       reactionImage.src=reactions[relation][0];
       reactionImage.alt=relation==='younger'?'밝게 웃는 표정':relation==='older'?'조금 아쉬운 표정':'차분한 표정';
