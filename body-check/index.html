@@ -37,16 +37,18 @@
 <fieldset class="question"><legend><span class="question-top"><span>13</span> 운동 습관</span><strong>최근 한 달 동안 일주일에 두 번 이상 규칙적으로 운동했나요?</strong></legend><div class="answers"><label><input type="radio" name="q12" value="1" required><span>1. 매우 그렇다</span></label><label><input type="radio" name="q12" value="0.75"><span>2. 그렇다</span></label><label><input type="radio" name="q12" value="0.5"><span>3. 보통이다</span></label><label><input type="radio" name="q12" value="0.25"><span>4. 그렇지 않다</span></label><label><input type="radio" name="q12" value="0"><span>5. 매우 그렇지 않다</span></label></div></fieldset>
 <fieldset class="question"><legend><span class="question-top"><span>14</span> 일상 활동</span><strong>평소 오래 앉아 있어도 틈틈이 일어나 몸을 움직이고 있나요?</strong></legend><div class="answers"><label><input type="radio" name="q13" value="1" required><span>1. 매우 그렇다</span></label><label><input type="radio" name="q13" value="0.75"><span>2. 그렇다</span></label><label><input type="radio" name="q13" value="0.5"><span>3. 보통이다</span></label><label><input type="radio" name="q13" value="0.25"><span>4. 그렇지 않다</span></label><label><input type="radio" name="q13" value="0"><span>5. 매우 그렇지 않다</span></label></div></fieldset>
 <fieldset class="question"><legend><span class="question-top"><span>15</span> 운동 후 회복</span><strong>운동이나 활동을 한 다음 날 일상생활에 필요한 컨디션을 회복하나요?</strong></legend><div class="answers"><label><input type="radio" name="q14" value="1" required><span>1. 매우 그렇다</span></label><label><input type="radio" name="q14" value="0.75"><span>2. 그렇다</span></label><label><input type="radio" name="q14" value="0.5"><span>3. 보통이다</span></label><label><input type="radio" name="q14" value="0.25"><span>4. 그렇지 않다</span></label><label><input type="radio" name="q14" value="0"><span>5. 매우 그렇지 않다</span></label></div></fieldset></div>
-<section style="margin:28px 0;padding:20px;border:1px solid #ddd;background:#fff;line-height:1.7">
-<h3>테스트 결과 저장 동의 (선택)</h3>
-<p>모티브짐 성복점은 결과 확인·상담을 위해 아래 정보를 2년간 보관합니다. 동의하지 않아도 테스트할 수 있습니다. 철회·삭제 요청: 031-266-7744</p>
-<label style="display:block;margin:12px 0"><input type="checkbox" id="consent-personal"> [선택] 이름, 나이, 성별 및 테스트 결과의 수집·이용에 동의합니다.</label>
-<label style="display:block;margin:12px 0"><input type="checkbox" id="consent-sensitive"> [선택] 키, 몸무게, 체지방률 및 신체 상태 관련 설문 답변의 수집·이용에 동의합니다.</label>
-<p>두 항목에 모두 동의하면 결과가 저장됩니다.</p>
-</section>
+
 <button class="submit" type="submit">나의 신체 나이 확인하기 →</button>
 
 </form>
+<dialog id="save-consent-dialog" aria-labelledby="save-consent-title" style="width:min(92vw,560px);border:1px solid #dedbd7;padding:26px;line-height:1.7">
+<h3 id="save-consent-title">테스트 결과 저장 동의 (선택)</h3>
+<p>모티브짐 성복점은 결과 확인과 상담을 위해 아래 정보를 2년간 보관합니다. 동의를 거부해도 테스트할 수 있습니다. 철회·삭제: 031-266-7744</p>
+<label style="display:block;margin:12px 0"><input type="checkbox" id="consent-personal"> [선택] 이름, 나이, 성별 및 테스트 결과의 수집·이용에 동의합니다.</label>
+<label style="display:block;margin:12px 0"><input type="checkbox" id="consent-sensitive"> [선택] 키, 몸무게, 체지방률 및 신체 상태 관련 설문 답변의 수집·이용에 동의합니다.</label>
+<p id="consent-message" role="status" style="color:#a52d00"></p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button type="button" id="save-consent-accept" style="border:0;background:#ff5b1f;color:white;padding:14px;font:inherit;font-weight:800;cursor:pointer">동의하고 결과 보기</button><button type="button" id="save-consent-skip" style="border:1px solid #aaa;background:white;padding:14px;font:inherit;font-weight:800;cursor:pointer">저장 없이 결과 보기</button></div>
+</dialog>
 <section class="result" id="result" hidden aria-live="polite" tabindex="-1"><div class="label">YOUR BODY CHECK</div><h2><span id="result-name"></span>님의 신체 나이 지표는?</h2><div class="fitness-age" id="fitness-age" hidden><span class="age-label">설문·BMI·체지방률로 계산한 자체 지표</span><strong class="age-value" id="age-value" aria-live="off"></strong><span id="age-result-status" class="sr-only" role="status"></span><div class="age-reaction" id="age-reaction" hidden><img id="age-image" alt="" width="132" height="132"><span id="age-caption"></span></div></div><p id="result-summary"></p><p id="record-status" role="status"></p><p id="bmi-result"></p><p id="focus"></p><section class="tarot" aria-labelledby="tarot-title"><button class="tarot-card" type="button" id="tarot-card" aria-expanded="false" aria-controls="exercise-reveal"><span class="tarot-card-inner"><span class="card-top">MOTIVE · TAROT</span><span class="card-symbol" id="tarot-symbol" aria-hidden="true"></span><span class="card-bottom" id="tarot-card-name"></span></span></button><div class="tarot-copy"><div class="eyebrow">TODAY'S MOTIVE</div><h3 id="tarot-title">오늘의 타로 &amp; 운동</h3><p class="fortune" id="tarot-fortune" aria-live="polite"></p><p class="tap-hint" id="tarot-hint">카드를 눌러 오늘의 운동 보기 ↗</p></div><div class="exercise-reveal" id="exercise-reveal" hidden><div class="exercise-picture" id="exercise-picture" role="img"></div><div><div class="eyebrow">TODAY'S MOVEMENT</div><h4 id="exercise-name"></h4><p id="exercise-status" aria-live="polite"></p><p id="exercise-guide"></p><div class="exercise-progress" id="exercise-progress" hidden aria-hidden="true"><span></span></div><p>편안한 범위에서 움직이고, 통증이 있으면 멈춰 주세요.</p></div></div></section><div class="share-panel" id="share-panel" hidden><button type="button" id="share-result" class="share-result"><span class="share-overline">✨ 친구의 신체 나이는 몇 살일까요? ✨</span><span class="share-main">친구에게 테스트 보내기 ↗</span></button><p id="share-status" class="share-status" role="status" aria-live="polite"></p><textarea id="share-fallback" class="share-fallback" aria-label="공유할 테스트 링크" readonly hidden></textarea></div><div class="result-actions"><a href="https://m.booking.naver.com/booking/6/bizes/1210623/items/6558384" target="_blank" rel="noopener noreferrer">모티브짐 무료 상담 신청하기 →</a><a href="https://m.booking.naver.com/booking/6/bizes/1210623/items/8076905" target="_blank" rel="noopener noreferrer">체험피티 신청하기 →</a><button id="retry" type="button">다시 확인하기</button></div></section>
 </div></main><footer><div>© MOTIVE GYM SEONGBOK · 성복역 4번 출구 데이파크 C동 2층 206호</div></footer>
 <script>
@@ -269,9 +271,26 @@
     ageSpinInterval=setInterval(next,90);
     ageSpinTimeout=setTimeout(finish,6000);
   }
+  const consentDialog=document.getElementById('save-consent-dialog');
+  let consentProceed=false;
+  document.getElementById('save-consent-accept').addEventListener('click',function(){
+    if(!document.getElementById('consent-personal').checked||!document.getElementById('consent-sensitive').checked){
+      document.getElementById('consent-message').textContent='결과를 저장하려면 두 항목에 모두 동의해 주세요.';return;
+    }
+    consentProceed=true;consentDialog.close();form.requestSubmit();
+  });
+  document.getElementById('save-consent-skip').addEventListener('click',function(){
+    document.getElementById('consent-personal').checked=false;document.getElementById('consent-sensitive').checked=false;
+    consentProceed=true;consentDialog.close();form.requestSubmit();
+  });
   form.addEventListener('submit',function(event){
     event.preventDefault();
     if(!form.reportValidity())return;
+    if(!consentProceed){
+      document.getElementById('consent-personal').checked=false;document.getElementById('consent-sensitive').checked=false;
+      document.getElementById('consent-message').textContent='';consentDialog.showModal();return;
+    }
+    consentProceed=false;
     const focus=[];
     let score=0;
     for(let i=0;i<labels.length;i++){
