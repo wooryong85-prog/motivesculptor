@@ -290,6 +290,13 @@
       :(bodyFat>=15&&bodyFat<30?30:bodyFat>=30&&bodyFat<35?15:0);
     const totalScore=bmiScore+bodyFatScore+score/labels.length*40;
     const comparisonAge=Math.round(age+10-totalScore/4);
+    // Record only broad aggregate categories; no identity, measurements or individual answers.
+    try {
+      const ageBand=comparisonAge<20?'20세 미만':comparisonAge<30?'20대':comparisonAge<40?'30대':comparisonAge<50?'40대':comparisonAge<60?'50대':comparisonAge<70?'60대':'70대 이상';
+      let source='기타';
+      try { const host=new URL(document.referrer).hostname; if(host==='daangn.com'||host.endsWith('.daangn.com')||host==='karrotmarket.com'||host.endsWith('.karrotmarket.com'))source='당근'; else if(host==='motivegym.co.kr'||host.endsWith('.motivegym.co.kr'))source='홈페이지'; } catch (_) {}
+      fetch('https://cbxltnyccjzptqkmtsqf.supabase.co/rest/v1/rpc/record_body_test',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_jDZmnxr0T23ubpMI72BLGA_grGTXqIY'},body:JSON.stringify({p_age_band:ageBand,p_source:source}),keepalive:true}).catch(()=>{});
+    } catch (_) {}
     document.getElementById('bmi-result').textContent='BMI '+bmi.toFixed(2)+' · 체지방률 '+bodyFat.toFixed(1)+'%';
     summary.textContent='입력한 측정값과 설문을 반영한 자체 참고 지표입니다. 체지방률은 측정 기기와 조건에 따라 달라질 수 있습니다.';
     const relation=comparisonAge<age?'younger':comparisonAge>age?'older':'same';
