@@ -22,7 +22,7 @@ const statusClass=remaining=>remaining<=2?'low':remaining<=5?'caution':'good';
 function openMemberPicker(date,time){
  let picker=$('member-picker');if(!picker){picker=document.createElement('dialog');picker.id='member-picker';picker.className='member-picker';document.body.append(picker)}
  const allowed=enrollments.filter(e=>(admin||e.trainer_id===ownTrainer?.id)&&e.payment_method).map(e=>{const used=sessions.filter(s=>s.enrollment_id===e.id).reduce((n,s)=>n+Number(s.quantity),0),next=used+1,remaining=Math.max(0,e.session_count-used);return '<button type="button" data-pick-member="'+e.id+'" class="'+statusClass(remaining)+'"><b>'+esc(e.member_name)+'</b><span>'+next+'/'+e.session_count+' 진행 예정 · '+remaining+'회 남음</span></button>'}).join('')||'<p>선택 가능한 회원이 없습니다.</p>';
- let duration=Number($('session-duration').value||50);const durationButtons=()=>'<div class="duration-choice"><button type="button" data-pick-duration="50" class="'+(duration===50?'active':'')+'">50분 수업</button><button type="button" data-pick-duration="30" class="'+(duration===30?'active':'')+'">30분 PT</button></div>';
+ let duration=time.endsWith(':30')?30:Number($('session-duration').value||50);const durationButtons=()=>'<div class="duration-choice">'+(time.endsWith(':30')?'':'<button type="button" data-pick-duration="50" class="'+(duration===50?'active':'')+'">50분 수업</button>')+'<button type="button" data-pick-duration="30" class="'+(duration===30?'active':'')+'">30분 PT</button></div>';
  picker.innerHTML='<style>#member-picker{border:0;border-radius:12px;padding:22px;width:min(420px,92vw);box-shadow:0 18px 50px #0005}#member-picker::backdrop{background:#0007}.member-picker-list{max-height:360px;overflow:auto;display:grid;gap:8px}.member-picker-list button{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;padding:13px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#222}.member-picker-list button span{font-size:12px}.member-picker-list button.good{border-left:7px solid #36a65d}.member-picker-list button.caution{border-left:7px solid #e6b800}.member-picker-list button.low{border-left:7px solid #de4040}.duration-choice{display:flex;gap:8px;margin:12px 0}.duration-choice button{flex:1;border:1px solid #bbb;border-radius:6px;padding:10px;background:#fff}.duration-choice button.active{background:#ff5b1f;color:#fff;border-color:#ff5b1f}.close{float:right;background:#333;color:#fff;border:0;border-radius:5px;padding:7px 10px}</style><form method="dialog"><button class="close">닫기</button></form><h2>'+date+' '+time+' 수업 선택</h2><p>수업 시간을 고른 뒤 회원을 선택하세요.</p>'+durationButtons()+'<div class="member-picker-list">'+allowed+'</div>';
  picker.onclick=ev=>{const d=ev.target.closest('button[data-pick-duration]');if(d){duration=Number(d.dataset.pickDuration);picker.querySelector('.duration-choice').outerHTML=durationButtons();return}const b=ev.target.closest('button[data-pick-member]');if(!b)return;$('session-enrollment').value=b.dataset.pickMember;$('schedule-member').value=b.dataset.pickMember;$('session-duration').value=String(duration);updateProgress();$('session-date').value=date;setTimeOptions();$('session-time').value=time;slotPicked=true;$('selected-slot').textContent=date+' '+time+' · '+duration+'분 선택됨';picker.close();$('session-form').scrollIntoView({behavior:'smooth',block:'center'});message(date+' '+time+' '+duration+'분 수업에 회원을 배정했습니다.')};picker.showModal();
 }
@@ -34,9 +34,10 @@ function renderWeeklySchedule(){
  const body=times.map(time=>'<tr><td class="time">'+time+'</td>'+dates.map(date=>{
    const day=new Date(date+'T12:00:00').getDay(),minute=mins(time),closing=day===0?1080:day===6?960:1380,opening=day===0||day===6?600:540;
    if(minute<opening||minute>=closing)return '<td class="closed"></td>';
-   const s=sessions.find(x=>x.session_date===date&&String(x.starts_at||'').slice(0,5)===time),e=s&&enrollments.find(x=>x.id===s.enrollment_id);
-   if(s){const sequence=sessionNo(s.enrollment_id,s),total=Number(e?.session_count||0),remaining=Math.max(0,total-sequence);return '<td><div class="schedule-class '+(Number(s.duration_minutes)===30?'thirty ':'')+statusClass(remaining)+'"><small>'+esc(e?.member_name||'회원')+' · '+sequence+'/'+total+'</small>'+time+' · '+(s.duration_minutes||50)+'분</div></td>'}
-   return '<td><button type="button" class="schedule-slot" data-slot-date="'+date+'" data-slot-time="'+time+'">＋</button></td>';
+   const half=clock(minute+30),first=sessions.find(x=>x.session_date===date&&String(x.starts_at||'').slice(0,5)===time),second=sessions.find(x=>x.session_date===date&&String(x.starts_at||'').slice(0,5)===half);
+   const card=(s,slot)=>{if(!s)return '<button type="button" class="schedule-slot" data-slot-date="'+date+'" data-slot-time="'+slot+'">＋</button>';const e=enrollments.find(x=>x.id===s.enrollment_id),sequence=sessionNo(s.enrollment_id,s),total=Number(e?.session_count||0),remaining=Math.max(0,total-sequence);return '<div class="schedule-class '+(Number(s.duration_minutes)===30?'thirty ':'')+statusClass(remaining)+'"><small>'+esc(e?.member_name||'회원')+' · '+sequence+'/'+total+'</small>'+slot+' · '+(s.duration_minutes||50)+'분</div>'};
+   if(first&&Number(first.duration_minutes)!==30)return '<td>'+card(first,time)+'</td>';
+   return '<td class="hour-split" style="padding:0"><div style="height:50%;border-bottom:1px solid #ddd">'+card(first,time)+'</div><div style="height:50%">'+card(second,half)+'</div></td>';
  }).join('')+'</tr>').join('');
  $('weekly-schedule').innerHTML=header+'<tbody>'+body+'</tbody>';
 }
@@ -48,7 +49,7 @@ function sessionNo(id,session){
 function setTimeOptions(){
  const date=$('session-date').value||today(),dow=new Date(date+'T12:00:00').getDay();
  const [opens,closes]=dow===0?[600,1080]:dow===6?[600,960]:[540,1380],duration=Number($('session-duration').value||50),old=$('session-time').value;
- const times=[];for(let time=opens;time+duration<=closes;time+=30)times.push(clock(time));
+ const times=[];for(let time=opens;time+duration<=closes;time+=(duration===30?30:60))times.push(clock(time));
  $('session-time').innerHTML=times.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
  if(times.includes(old))$('session-time').value=old;
  $('hours').textContent=(dow===0?'일요일 10:00–18:00':dow===6?'토요일 10:00–16:00':'평일 09:00–23:00')+' · '+duration+'분 수업을 기록합니다.';
