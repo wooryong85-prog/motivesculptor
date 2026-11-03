@@ -317,10 +317,11 @@ function render(){
  const [start,end]=monthRange(),monthly=enrollments.filter(e=>inMonth(e.registered_at,start,end)),refunded=enrollments.filter(e=>inMonth(e.refunded_at,start,end)),completed=sessions.filter(s=>inMonth(s.session_date,start,end));
  if(!admin&&ownTrainer){
   const current=today().slice(0,7),ownRegistered=enrollments.filter(e=>e.trainer_id===ownTrainer.id&&e.registered_at?.startsWith(current)),ownRefunded=enrollments.filter(e=>e.trainer_id===ownTrainer.id&&e.refunded_at?.startsWith(current)),renewals=ownRegistered.filter(e=>e.is_renewal).length;
+  const [year,month]=current.split('-').map(Number),nextMonth=dateText(new Date(year,month,1,12)),ended=trainerEvaluation(ownTrainer,current+'-01',nextMonth).failure,renewalTotal=renewals+ended;
   $('trainer-sales').textContent=won(ownRegistered.reduce((sum,e)=>sum+Number(e.price||0),0)-ownRefunded.reduce((sum,e)=>sum+Number(e.refund_amount||0),0));
   $('trainer-sales-note').textContent=current.replace('-','년 ')+'월 · 등록 '+ownRegistered.length+'건 · 환불 반영';
-  $('trainer-renewal').textContent=ownRegistered.length?Math.round(renewals/ownRegistered.length*100)+'%':'—';
-  $('trainer-renewal-note').textContent='재등록 '+renewals+'건 / 등록 '+ownRegistered.length+'건';
+  $('trainer-renewal').textContent=renewalTotal?Math.round(renewals/renewalTotal*100)+'%':'—';
+  $('trainer-renewal-note').textContent='재등록 '+renewals+'건 · 종료회원 '+ended+'건';
  }
  $('settlement-state').textContent=isClosed(start)?'정산 확정 · 수업 수정 잠김':'정산 전 · 수업 수정 가능';$('finalize-month').disabled=isClosed(start);$('finalize-month').textContent=isClosed(start)?'확정 완료':'급여정산 확정';
  if(admin){
