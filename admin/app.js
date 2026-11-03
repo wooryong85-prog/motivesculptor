@@ -1,6 +1,7 @@
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const db=createClient('https://cbxltnyccjzptqkmtsqf.supabase.co','sb_publishable_jDZmnxr0T23ubpMI72BLGA_grGTXqIY');
 const $=id=>document.getElementById(id);
+const mobileDays=document.createElement('div');mobileDays.id='mobile-days';mobileDays.className='mobile-days';$('weekly-schedule').before(mobileDays);
 const won=n=>new Intl.NumberFormat('ko-KR',{style:'currency',currency:'KRW',maximumFractionDigits:0}).format(Math.round(n||0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date());
@@ -8,7 +9,7 @@ const monthRange=()=>{const start=$('month').value+'-01',d=new Date(start+'T12:0
 const inMonth=(date,start,end)=>date&&date>=start&&date<end;
 const net=e=>e.payment_method==='card'?Number(e.price)/1.1:e.payment_method==='cash'?Number(e.price):0;
 const staffEmail=id=>id.toLowerCase()+'@staff.motivegym.co.kr';
-let user=null,admin=false,ownTrainer=null,trainers=[],enrollments=[],sessions=[],closedMonths=[],editingEnrollmentId=null,slotPicked=false,pendingLessons=[];
+let user=null,admin=false,ownTrainer=null,trainers=[],enrollments=[],sessions=[],closedMonths=[],editingEnrollmentId=null,slotPicked=false,pendingLessons=[],mobileDate=today();
 const isClosed=date=>closedMonths.includes(String(date).slice(0,7));
 const message=s=>$('msg').textContent=s;
 const empty=(id,cols)=>$(id).innerHTML='<tr><td colspan="'+cols+'" class="muted">내역이 없습니다.</td></tr>';
@@ -35,16 +36,18 @@ function openMemberPicker(date,time,editingSession=null){
 function updateProgress(){const e=enrollments.find(x=>x.id===Number($('session-enrollment').value));if(!e){$('progress-state').textContent='회원 선택 후 진행 회차와 남은 수업 수를 확인할 수 있습니다.';$('progress-state').className='progress-state';return}const used=sessions.filter(s=>s.enrollment_id===e.id).reduce((n,s)=>n+Number(s.quantity),0),remaining=Math.max(0,Number(e.session_count)-used);$('progress-state').textContent=(used+1)+'/'+e.session_count+'회 진행 예정 · '+remaining+'회 남음';$('progress-state').className='progress-state '+statusClass(remaining);}
 function renderWeeklySchedule(){
  const start=mondayFromWeek($('week-start').value), days=['월','화','수','목','금','토','일'], dates=days.map((_,i)=>dateAdd(start,i));
+ if(!dates.includes(mobileDate))mobileDate=dates[0];
+ $('mobile-days').innerHTML=dates.map((date,i)=>'<button type="button" data-mobile-date="'+date+'" aria-pressed="'+(mobileDate===date)+'">'+days[i]+'<small>'+date.slice(5).replace('-','/')+'</small></button>').join('');
  const times=[];for(let min=540;min<=1320;min+=60)times.push(clock(min));
- const header='<thead><tr><th>시작 시간</th>'+dates.map((d,i)=>'<th>'+days[i]+'<br><small>'+d.slice(5).replace('-','/')+'</small></th>').join('')+'</tr></thead>';
- const body=times.map(time=>'<tr><td class="time">'+time+'</td>'+dates.map(date=>{
+ const header='<thead><tr><th>시작 시간</th>'+dates.map((d,i)=>'<th class="'+(d===mobileDate?'mobile-active':'mobile-other')+'">'+days[i]+'<br><small>'+d.slice(5).replace('-','/')+'</small></th>').join('')+'</tr></thead>';
+ const body=times.map(time=>'<tr><td class="time">'+time+'</td>'+dates.map(date=>{const mobileClass=date===mobileDate?'mobile-active':'mobile-other';
    const day=new Date(date+'T12:00:00').getDay(),minute=mins(time),closing=day===0?1080:day===6?960:1380,opening=day===0||day===6?600:540;
-   if(minute<opening||minute>=closing)return '<td class="closed"></td>';
+   if(minute<opening||minute>=closing)return '<td class="closed '+mobileClass+'"></td>';
    const half=clock(minute+30),lessonAt=slot=>sessions.find(x=>x.session_date===date&&String(x.starts_at||'').slice(0,5)===slot)||(()=>{const p=pendingLessons.find(x=>x.date===date&&x.time===slot);return p?{pending:true,enrollment_id:p.enrollmentId,trainer_id:p.trainerId,duration_minutes:p.duration,session_date:date,starts_at:slot}:null})(),first=lessonAt(time),second=lessonAt(half);
    const card=(s,slot)=>{if(!s)return isClosed(date)?'<span class="schedule-slot" title="정산 확정">🔒</span>':'<button type="button" class="schedule-slot" data-slot-date="'+date+'" data-slot-time="'+slot+'">＋</button>';const e=enrollments.find(x=>x.id===s.enrollment_id),sequence=s.pending?sessions.filter(x=>x.enrollment_id===s.enrollment_id).reduce((n,x)=>n+Number(x.quantity),0)+1:sessionNo(s.enrollment_id,s),total=Number(e?.session_count||0),remaining=Math.max(0,total-sequence);return '<button type="button" class="schedule-class '+(Number(s.duration_minutes)===30?'thirty ':'')+statusClass(remaining)+(s.pending?' pending':'')+'" '+(s.pending?'data-slot-date="'+date+'" data-slot-time="'+slot+'"':'data-edit-session="'+s.id+'"')+' '+(isClosed(date)?'disabled title="정산 확정"':'')+'><small>'+esc(e?.member_name||'회원')+' · '+sequence+'/'+total+(s.pending?' · 저장 대기':'')+'</small>'+slot+' · '+(s.duration_minutes||50)+'분'+(isClosed(date)?' 🔒':'')+'</button>'};
-   if(!first&&!second)return '<td>'+card(null,time)+'</td>';
-   if(first&&Number(first.duration_minutes)!==30)return '<td>'+card(first,time)+'</td>';
-   return '<td class="hour-split" style="padding:0"><div style="height:50%;border-bottom:1px solid #ddd">'+card(first,time)+'</div><div style="height:50%">'+card(second,half)+'</div></td>';
+   if(!first&&!second)return '<td class="'+mobileClass+'">'+card(null,time)+'</td>';
+   if(first&&Number(first.duration_minutes)!==30)return '<td class="'+mobileClass+'">'+card(first,time)+'</td>';
+   return '<td class="hour-split '+mobileClass+'" style="padding:0"><div style="height:50%;border-bottom:1px solid #ddd">'+card(first,time)+'</div><div style="height:50%">'+card(second,half)+'</div></td>';
  }).join('')+'</tr>').join('');
  $('weekly-schedule').innerHTML=header+'<tbody>'+body+'</tbody>';
 }
@@ -105,6 +108,7 @@ $('enrollment-form').onsubmit=async ev=>{ev.preventDefault();const tid=Number($(
 $('enrollment-list').onclick=ev=>{const b=ev.target.closest('button[data-enrollment-id]');if(!b)return;const e=enrollments.find(x=>x.id===Number(b.dataset.enrollmentId));if(!e)return;editingEnrollmentId=e.id;$('member').value=e.member_name;$('trainer').value=e.trainer_id||'';$('registered').value=e.registered_at;$('ends').value=e.ends_at||'';$('sessions').value=e.session_count;$('price').value=e.price;$('payment').value=e.payment_method||'';$('type').value=e.is_renewal?'renewal':'new';$('enrollment-form').querySelector('button').textContent='수정 내역 저장';$('enrollment-form').scrollIntoView({behavior:'smooth'});message('기존 등록을 수정 중입니다. 결제 방식과 종료일을 확인하세요.')};
 $('session-date').onchange=()=>{setTimeOptions();slotPicked=false;$('selected-slot').textContent='시간표의 빈 칸을 선택하세요.'};$('session-duration').onchange=setTimeOptions;$('session-enrollment').onchange=()=>{$('schedule-member').value=$('session-enrollment').value;updateProgress()};$('schedule-member').onchange=()=>{$('session-enrollment').value=$('schedule-member').value;updateProgress()};$('week-start').onchange=renderWeeklySchedule;
 $('weekly-schedule').onclick=ev=>{const edit=ev.target.closest('button[data-edit-session]');if(edit){const s=sessions.find(x=>x.id===Number(edit.dataset.editSession));if(s)openMemberPicker(s.session_date,String(s.starts_at||'').slice(0,5),s);return}const slot=ev.target.closest('button[data-slot-date]');if(!slot)return;openMemberPicker(slot.dataset.slotDate,slot.dataset.slotTime)};
+$('mobile-days').onclick=ev=>{const button=ev.target.closest('[data-mobile-date]');if(!button)return;mobileDate=button.dataset.mobileDate;renderWeeklySchedule()};
 $('session-form').onsubmit=async ev=>{ev.preventDefault();const id=Number($('session-enrollment').value),e=enrollments.find(x=>x.id===id),duration=Number($('session-duration').value),start=$('session-time').value;if(!e){message('등록 회원을 선택하세요.');return}if(!slotPicked){message('주간 수업 시간표에서 빈 시간 칸을 선택하세요.');return}const used=sessions.filter(s=>s.enrollment_id===id).reduce((n,s)=>n+s.quantity,0);if(used+1>e.session_count){message('등록한 수업 수를 초과합니다.');return}const {error}=await db.from('completed_sessions').insert({enrollment_id:id,trainer_id:e.trainer_id,session_date:$('session-date').value,starts_at:start,duration_minutes:duration,quantity:1});if(error){message('수업 저장 실패: '+error.message);return}slotPicked=false;$('selected-slot').textContent='시간표의 빈 칸을 선택하세요.';message('수업을 기록했습니다. '+(used+1)+'/'+e.session_count+'회 진행');await load()};
 $('trainer-form').onsubmit=async ev=>{ev.preventDefault();const id=$('trainer-email').value.trim().toLowerCase();const {error}=await db.from('trainers').insert({name:$('trainer-name').value.trim(),login_id:id||null,share_rate:Number($('trainer-share').value)/100,base_salary:Number($('trainer-base').value),sort_order:Math.max(0,...trainers.map(t=>t.sort_order||0))+1,active:true});if(error){message('트레이너 추가 실패: '+error.message);return}ev.target.reset();message('트레이너를 추가했습니다. 로그인 사용자는 Supabase에서 '+staffEmail(id)+' 주소로 발급해야 합니다.');await load()};
 $('trainer-list').onclick=async ev=>{const save=ev.target.closest('button[data-save-trainer]'),toggle=ev.target.closest('button[data-trainer-id]');if(!save&&!toggle)return;const id=Number((save||toggle).dataset.saveTrainer||(save||toggle).dataset.trainerId),t=trainers.find(x=>x.id===id);const values=save?{share_rate:Number(document.querySelector('[data-share="'+id+'"]').value)/100,base_salary:Number(document.querySelector('[data-base="'+id+'"]').value)}:{active:!t.active};const {error}=await db.from('trainers').update(values).eq('id',id);message(error?'트레이너 변경 실패: '+error.message:'트레이너 설정을 저장했습니다.');if(!error)await load()};
