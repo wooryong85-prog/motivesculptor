@@ -8,6 +8,7 @@ const weekControls=document.createElement('div');weekControls.className='week-co
 const won=n=>new Intl.NumberFormat('ko-KR',{style:'currency',currency:'KRW',maximumFractionDigits:0}).format(Math.round(n||0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date());
+$('tab-dashboard').textContent=Number(today().slice(5,7))+'월 현황';
 $('annual-year').innerHTML=Array.from({length:51},(_,i)=>2020+i).map(year=>'<option value="'+year+'">'+year+'년</option>').join('');$('annual-year').value=today().slice(0,4);
 const monthRange=()=>{const start=$('month').value+'-01',d=new Date(start+'T12:00:00');d.setMonth(d.getMonth()+1);return [start,new Intl.DateTimeFormat('en-CA').format(d)]};
 const inMonth=(date,start,end)=>date&&date>=start&&date<end;
@@ -390,6 +391,7 @@ function renderAnnual(){
  $('annual-months').innerHTML=months.map(row=>'<tr><th scope="row">'+Number(row.key.slice(5))+'월</th><td>'+row.registered+'건</td><td>'+row.first+'건</td><td>'+row.renewal+'건</td><td>'+row.ended+'건</td><td>'+won(row.refundAmount)+' · '+row.refunds+'건</td><td>'+won(row.sales)+'</td></tr>').join('');
 }
 function render(){
+ $('tab-dashboard').textContent=Number(today().slice(5,7))+'월 현황';
  if(!admin)$('month').value=$('week-year').value+'-'+String($('week-month').value).padStart(2,'0');
  const [start,end]=monthRange(),monthly=enrollments.filter(e=>inMonth(e.registered_at,start,end)),refunded=enrollments.filter(e=>inMonth(e.refunded_at,start,end)),completed=sessions.filter(s=>inMonth(s.session_date,start,end));
  if(!admin&&ownTrainer){
