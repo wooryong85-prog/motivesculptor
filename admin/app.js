@@ -87,14 +87,15 @@ function openMemberPicker(date, time, editingSession = null) {
     const remaining = Math.max(0, Number(e.session_count) - used);
     const length = lessonLength(e);
     const unavailable = !length || (time.endsWith(':30') && length === 50);
-    const detail = length ? length + '분 · ' + (used + 1) + '/' + e.session_count + ' 예정 · ' + remaining + '회 남음' : '계약 시간 미설정 · 관리자 설정 필요';
-    return '<button type="button" data-pick-member="' + e.id + '" class="' + statusClass(remaining) + (selectedEnrollmentId === e.id ? ' selected' : '') + '" ' + (unavailable ? 'disabled' : '') + '><b>' + esc(e.member_name) + '</b><span>' + esc(detail) + '</span></button>';
+    const detail = !length ? '계약 시간 미설정 · 관리자 설정 필요' : time.endsWith(':30') && length === 50 ? '50분 계약 · 정시 칸에서 선택' : length + '분 · ' + (used + 1) + '/' + e.session_count + ' 예정 · ' + remaining + '회 남음';
+    return '<button type="button" data-pick-member="' + e.id + '" class="' + statusClass(remaining) + (unavailable ? ' unavailable' : '') + (selectedEnrollmentId === e.id ? ' selected' : '') + '"><b>' + esc(e.member_name) + '</b><span>' + esc(detail) + '</span></button>';
   }).join('') || '<p>선택 가능한 회원이 없습니다.</p>';
   const choiceMarkup = () => {
     const e = chosen();
     if (!e) return '<p class="note">먼저 위에서 회원을 선택하세요.</p>';
     const minutes = lessonLength(e);
     if (!minutes) return '<p class="note">관리자가 이 등록의 계약 수업 시간을 먼저 설정해야 합니다.</p>';
+    if (time.endsWith(':30') && minutes === 50) return '<p class="note">50분 계약 수업은 정시 칸에서 선택하세요.</p>';
     const options = [
       {kind: 'regular', status: 'attended', label: minutes === 30 ? 'PT' : '수업'},
       {kind: 'regular', status: 'no_show', label: 'NOSHOW (차감)'},
@@ -109,12 +110,13 @@ function openMemberPicker(date, time, editingSession = null) {
   picker.innerHTML = '<style>#member-picker{border:0;border-radius:12px;padding:20px;width:min(460px,94vw);max-height:90vh;overflow-y:auto;box-shadow:0 18px 50px #0005}#member-picker::backdrop{background:#0007}.member-picker-list{max-height:min(35vh,320px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;display:grid;gap:8px}.member-picker-list button{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;padding:12px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#222;gap:8px}.member-picker-list button:disabled{opacity:.55;cursor:not-allowed}.member-picker-list button.selected{background:#fff0e6;border-color:#ff5b1f;outline:3px solid #ff5b1f;outline-offset:-3px;box-shadow:0 0 0 4px #ff5b1f55;font-weight:800}.member-picker-list button span{font-size:11px;text-align:right}.member-picker-list button.good{border-left:7px solid #36a65d}.member-picker-list button.caution{border-left:7px solid #e6b800}.member-picker-list button.low{border-left:7px solid #de4040}.duration-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.duration-choice button{width:100%;border:1px solid #bbb;border-radius:6px;padding:10px;background:#fff;color:#222}.duration-choice button[data-pick-attendance="no_show"]{border-style:dashed}.duration-choice button.active{background:#ff5b1f;color:#fff;border-color:#ff5b1f}.dialog-actions{display:flex;justify-content:flex-end;gap:8px}.close,.confirm{border:0;border-radius:5px;padding:8px 12px}.close{background:#333;color:#fff}.confirm{background:#ff5b1f;color:#fff}</style>' +
     '<div class="dialog-actions"><button type="button" class="close" data-close>닫기</button><button type="button" class="confirm" data-confirm-day>' + (editingSession ? '변경 저장' : '확인 · ' + pendingCount() + '건 저장') + '</button></div>' +
     '<h2>' + date + ' ' + time + (editingSession ? ' 수업 변경' : ' 수업 선택') + '</h2><p>회원을 먼저 고른 뒤 수업 종류를 선택하세요.</p><div class="member-picker-list">' + memberList + '</div><div id="lesson-choices">' + choiceMarkup() + '</div><p id="picker-selection" role="status">' + (chosen() ? '선택한 회원: ' + esc(chosen().member_name) : '회원을 선택하세요.') + '</p>';
+  picker.querySelector('style').textContent += '.member-picker-list button{display:block}.member-picker-list button b,.member-picker-list button span{display:block;text-align:left}.member-picker-list button span{margin-top:5px;font-size:12px}.member-picker-list button.unavailable{border-style:dashed}';
   picker.onclick = async ev => {
     if (ev.target.closest('[data-close]')) { picker.close(); return; }
     if (ev.target.closest('[data-confirm-day]')) {
       if (editingSession) {
         const e = chosen();
-        if (!e || !sessionType) { message('회원과 수업 종류를 선택하세요.'); return; }
+        if (!e || ![30, 50].includes(lessonLength(e)) || !sessionType) { message('회원과 계약 수업 시간을 확인한 뒤 수업 종류를 선택하세요.'); return; }
         const {error} = await db.from('completed_sessions').update({
           enrollment_id: e.id, trainer_id: e.trainer_id, duration_minutes: lessonLength(e),
           attendance_status: sessionType === 'service' ? 'attended' : attendanceStatus,
@@ -141,7 +143,7 @@ function openMemberPicker(date, time, editingSession = null) {
       }
       picker.querySelectorAll('[data-pick-member]').forEach(x => x.classList.toggle('selected', Number(x.dataset.pickMember) === nextId));
       picker.querySelector('#lesson-choices').innerHTML = choiceMarkup();
-      picker.querySelector('#picker-selection').textContent = '선택한 회원: ' + chosen().member_name + ' · ' + lessonLength(chosen()) + '분';
+      picker.querySelector('#picker-selection').textContent = '선택한 회원: ' + chosen().member_name + (lessonLength(chosen()) ? ' · 계약 ' + lessonLength(chosen()) + '분' : ' · 계약 시간 미설정');
       picker.querySelector('[data-confirm-day]').textContent = editingSession ? '변경 저장' : '확인 · ' + pendingCount() + '건 저장';
       return;
     }
