@@ -34,40 +34,134 @@ function refreshWeekNumbers(selectedStart){const year=Number($('week-year').valu
 function initializeWeekPicker(){const current=new Date(today()+'T12:00:00').getFullYear(),selected=mondayFromWeek($('week-start').value),year=current,month=Number(today().slice(5,7));$('week-year').innerHTML=Array.from({length:51},(_,i)=>2020+i).map(y=>'<option value="'+y+'">'+y+'년</option>').join('');$('week-month').innerHTML=Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'월</option>').join('');$('week-year').value=String(year);$('week-month').value=String(month);refreshWeekNumbers(selected)}
 const statusClass=remaining=>remaining<=2?'low':remaining<=5?'caution':'good';
 async function savePendingDay(date){
- if(!isSelectedMonthDate(date)||(!admin&&selectedMonth()>today().slice(0,7))){message('현재 월의 수업만 저장할 수 있습니다.');return}
- if(isClosed(date)){message('월 정산이 확정되어 이 달 수업을 변경할 수 없습니다.');return}
+ if(!isSelectedMonthDate(date)||(!admin&&selectedMonth()>today().slice(0,7))){message('현재 월의 수업만 저장할 수 있습니다.');return false}
+ if(isClosed(date)){message('월 정산이 확정되어 이 달 수업을 변경할 수 없습니다.');return false}
  const rows=pendingLessons.filter(x=>x.date===date);
- if(!rows.length){message('저장할 수업을 먼저 선택하세요.');return}
+ if(!rows.length){message('저장할 수업을 먼저 선택하세요.');return false}
+ for(const row of rows){
+  const enrollment=enrollments.find(e=>e.id===row.enrollmentId);
+  if(!enrollment||Number(enrollment.contract_duration_minutes)!==row.duration){message('관리자에게 계약 수업 시간을 확인해 주세요.');return false}
+ }
  const month=date.slice(0,7);
  for(const trainerId of new Set(rows.filter(x=>x.sessionType==='service').map(x=>x.trainerId))){
   const saved=sessions.filter(s=>s.trainer_id===trainerId&&s.session_date.startsWith(month)&&s.session_type==='service').length;
   const queued=rows.filter(x=>x.trainerId===trainerId&&x.sessionType==='service').length;
-  if(saved+queued>10){message('트레이너별 서비스 수업은 월 10회까지입니다.');return}
+  if(saved+queued>10){message('트레이너별 서비스 수업은 월 10회까지입니다.');return false}
  }
  for(const row of rows){
-  if(isArchived(date,row.trainerId)||(!admin&&isPastMonth(date))){message('월 기록이 보관되어 수정할 수 없습니다.');return}
+  if(isArchived(date,row.trainerId)||(!admin&&isPastMonth(date))){message('월 기록이 보관되어 수정할 수 없습니다.');return false}
   const service=row.sessionType==='service';
   const {error}=await db.from('completed_sessions').insert({enrollment_id:row.enrollmentId,trainer_id:row.trainerId,session_date:row.date,starts_at:row.time,duration_minutes:row.duration,attendance_status:service?'attended':row.attendanceStatus||'attended',session_type:service?'service':'regular',quantity:service?0:1});
-  if(error){message('수업 저장 실패: '+error.message);return}
+  if(error){message('수업 저장 실패: '+error.message);return false}
  }
  pendingLessons=pendingLessons.filter(x=>x.date!==date);
  message(date+' 수업 '+rows.length+'건을 저장했습니다.');
- await load()
+ await load();return true
 }
-function openMemberPicker(date,time,editingSession=null){
- if(!isSelectedMonthDate(date)){message('선택한 월의 날짜만 편집할 수 있습니다.');return}
- if(lessonLocked(date,editingSession?.trainer_id||ownTrainer?.id)){message('확정된 수업일 또는 보관된 월의 수업은 변경할 수 없습니다.');return}
- let picker=$('member-picker');if(!picker){picker=document.createElement('dialog');picker.id='member-picker';picker.className='member-picker';document.body.append(picker)}
- const queuedLesson=pendingLessons.find(x=>x.date===date&&x.time===time);
- let selectedEnrollmentId=editingSession?.enrollment_id||queuedLesson?.enrollmentId||null;
- let duration=editingSession?Number(editingSession.duration_minutes):(queuedLesson?.duration|| (time.endsWith(':30')?30:Number($('session-duration').value||50)));
- let attendanceStatus=editingSession?.attendance_status||queuedLesson?.attendanceStatus||'attended';
- let sessionType=editingSession?.session_type||queuedLesson?.sessionType||'regular';
- const serviceUsage=admin?'':' · 이번 달 '+sessions.filter(s=>s.trainer_id===ownTrainer?.id&&s.session_date.startsWith(date.slice(0,7))&&s.session_type==='service').length+'/10회';
- const allowed=enrollments.filter(e=>(admin||e.trainer_id===ownTrainer?.id)&&e.payment_method).map(e=>{const used=sessions.filter(s=>s.enrollment_id===e.id).reduce((n,s)=>n+Number(s.quantity),0),next=used+1,remaining=Math.max(0,e.session_count-used);return '<button type="button" data-pick-member="'+e.id+'" class="'+statusClass(remaining)+(selectedEnrollmentId===e.id?' selected':'')+'"><b>'+esc(e.member_name)+'</b><span>'+next+'/'+e.session_count+' 진행 예정 · '+remaining+'회 남음</span></button>'}).join('')||'<p>선택 가능한 회원이 없습니다.</p>';
- const durationButtons=()=>'<div class="duration-choice">'+(time.endsWith(':30')?[30]:[50,30]).flatMap(minutes=>[{kind:'regular',status:'attended',label:minutes===30?'PT':'수업'},{kind:'regular',status:'no_show',label:'NOSHOW (차감)'},{kind:'service',status:'attended',label:'서비스'}].map(option=>'<button type="button" data-pick-duration="'+minutes+'" data-pick-attendance="'+option.status+'" data-pick-kind="'+option.kind+'" aria-pressed="'+(duration===minutes&&attendanceStatus===option.status&&sessionType===option.kind)+'" class="'+(duration===minutes&&attendanceStatus===option.status&&sessionType===option.kind?'active':'')+'">'+minutes+'분 '+option.label+'</button>')).join('')+'</div>';
- const pending=pendingLessons.filter(x=>x.date===date).length;picker.innerHTML='<style>#member-picker{border:0;border-radius:12px;padding:22px;width:min(420px,92vw);box-shadow:0 18px 50px #0005}#member-picker::backdrop{background:#0007}.member-picker-list{max-height:min(50vh,440px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;display:grid;gap:8px}.member-picker-list button{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;padding:13px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#222}.member-picker-list button.selected{background:#fff0e6;border-color:#ff5b1f;outline:3px solid #ff5b1f;outline-offset:-3px;box-shadow:0 0 0 4px #ff5b1f55;font-weight:800}.member-picker-list button span{font-size:12px}.member-picker-list button.good{border-left:7px solid #36a65d}.member-picker-list button.caution{border-left:7px solid #e6b800}.member-picker-list button.low{border-left:7px solid #de4040}.duration-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.duration-choice button{width:100%;border:1px solid #bbb;border-radius:6px;padding:10px;background:#fff;color:#222}.duration-choice button[data-pick-attendance="no_show"]{border-style:dashed}.duration-choice button.active{background:#ff5b1f;color:#fff;border-color:#ff5b1f}.dialog-actions{display:flex;justify-content:flex-end;gap:8px}.close,.confirm{border:0;border-radius:5px;padding:8px 12px}.close{background:#333;color:#fff}.confirm{background:#ff5b1f;color:#fff}</style><div class="dialog-actions"><button type="button" class="close" data-close>닫기</button><button type="button" class="confirm" data-confirm-day>'+ (editingSession?'변경 저장':'확인 · '+pending+'건 저장') +'</button></div><h2>'+date+' '+time+(editingSession?' 수업 변경':' 수업 선택')+'</h2><p>'+ (editingSession?'회원 또는 수업 시간을 고른 뒤 변경 저장을 누르세요.':'수업 시간을 고른 뒤 회원을 선택하세요.') +'</p>'+durationButtons()+'<p class="note">서비스 수업: 회원 회차 차감 없음 · 수당 없음 · 트레이너별 월 10회'+serviceUsage+'</p><p id="picker-selection" role="status">'+(selectedEnrollmentId?'선택한 회원: '+esc(enrollments.find(x=>x.id===selectedEnrollmentId)?.member_name||''):'회원을 선택하세요.')+'</p><div class="member-picker-list">'+allowed+'</div>';
- picker.onclick=async ev=>{if(ev.target.closest('[data-close]')){picker.close();return}if(ev.target.closest('[data-confirm-day]')){if(editingSession){const e=enrollments.find(x=>x.id===selectedEnrollmentId);if(!e){message('회원을 선택하세요.');return}const {error}=await db.from('completed_sessions').update({enrollment_id:e.id,trainer_id:e.trainer_id,duration_minutes:duration,attendance_status:sessionType==='service'?'attended':attendanceStatus,session_type:sessionType,quantity:sessionType==='service'?0:1}).eq('id',editingSession.id);if(error){message('수업 변경 실패: '+error.message);return}picker.close();message('수업 내용을 변경했습니다.');await load();return}await savePendingDay(date);picker.close();return}const d=ev.target.closest('button[data-pick-duration]');if(d){duration=Number(d.dataset.pickDuration);sessionType=d.dataset.pickKind;attendanceStatus=sessionType==='service'?'attended':d.dataset.pickAttendance;const queued=pendingLessons.find(x=>x.date===date&&x.time===time);if(queued&&!editingSession){queued.duration=duration;queued.attendanceStatus=attendanceStatus;queued.sessionType=sessionType;renderWeeklySchedule()}picker.querySelector('.duration-choice').outerHTML=durationButtons();if(selectedEnrollmentId)picker.querySelector('#picker-selection').textContent='선택한 회원: '+enrollments.find(x=>x.id===selectedEnrollmentId)?.member_name+' · '+time+' · '+duration+'분'+(sessionType==='service'?' · 서비스':attendanceStatus==='no_show'?' · NOSHOW (차감)':'');return}const b=ev.target.closest('button[data-pick-member]');if(!b)return;const e=enrollments.find(x=>x.id===Number(b.dataset.pickMember));if(editingSession){selectedEnrollmentId=e.id;picker.querySelectorAll('[data-pick-member]').forEach(x=>x.classList.toggle('selected',Number(x.dataset.pickMember)===e.id));return}const existing=pendingLessons.findIndex(x=>x.date===date&&x.time===time);const row={enrollmentId:e.id,trainerId:e.trainer_id,date,time,duration,attendanceStatus,sessionType};if(existing>=0)pendingLessons[existing]=row;else pendingLessons.push(row);selectedEnrollmentId=e.id;picker.querySelectorAll('[data-pick-member]').forEach(x=>x.classList.toggle('selected',Number(x.dataset.pickMember)===e.id));picker.querySelector('#picker-selection').textContent='선택한 회원: '+e.member_name+' · '+time+' · '+duration+'분'+(sessionType==='service'?' · 서비스':attendanceStatus==='no_show'?' · NOSHOW (차감)':'');picker.querySelector('[data-confirm-day]').textContent='확인 · '+pendingLessons.filter(x=>x.date===date).length+'건 저장';renderWeeklySchedule();renderDaily();message(date+' '+time+' 수업을 저장 대기 목록에 추가했습니다.')};picker.showModal();
+function openMemberPicker(date, time, editingSession = null) {
+  if (!isSelectedMonthDate(date)) { message('선택한 월의 날짜만 편집할 수 있습니다.'); return; }
+  if (lessonLocked(date, editingSession?.trainer_id || ownTrainer?.id)) {
+    message('확정된 수업일 또는 보관된 월의 수업은 변경할 수 없습니다.');
+    return;
+  }
+  let picker = $('member-picker');
+  if (!picker) {
+    picker = document.createElement('dialog');
+    picker.id = 'member-picker';
+    document.body.append(picker);
+  }
+  const queuedLesson = pendingLessons.find(x => x.date === date && x.time === time);
+  const allowed = enrollments.filter(e => (admin || e.trainer_id === ownTrainer?.id) && e.payment_method);
+  let selectedEnrollmentId = editingSession?.enrollment_id || queuedLesson?.enrollmentId || null;
+  let sessionType = editingSession?.session_type || queuedLesson?.sessionType || null;
+  let attendanceStatus = editingSession?.attendance_status || queuedLesson?.attendanceStatus || 'attended';
+  const chosen = () => allowed.find(e => e.id === selectedEnrollmentId);
+  if (selectedEnrollmentId && !chosen()) { selectedEnrollmentId = null; sessionType = null; }
+  const lessonLength = e => Number(e?.contract_duration_minutes || 0);
+  const serviceUsage = () => {
+    const trainerId = chosen()?.trainer_id || ownTrainer?.id;
+    return sessions.filter(s => s.trainer_id === trainerId && s.session_date.startsWith(date.slice(0, 7)) && s.session_type === 'service').length;
+  };
+  const memberList = allowed.map(e => {
+    const used = sessions.filter(s => s.enrollment_id === e.id).reduce((n, s) => n + Number(s.quantity), 0);
+    const remaining = Math.max(0, Number(e.session_count) - used);
+    const length = lessonLength(e);
+    const unavailable = !length || (time.endsWith(':30') && length === 50);
+    const detail = length ? length + '분 · ' + (used + 1) + '/' + e.session_count + ' 예정 · ' + remaining + '회 남음' : '계약 시간 미설정 · 관리자 설정 필요';
+    return '<button type="button" data-pick-member="' + e.id + '" class="' + statusClass(remaining) + (selectedEnrollmentId === e.id ? ' selected' : '') + '" ' + (unavailable ? 'disabled' : '') + '><b>' + esc(e.member_name) + '</b><span>' + esc(detail) + '</span></button>';
+  }).join('') || '<p>선택 가능한 회원이 없습니다.</p>';
+  const choiceMarkup = () => {
+    const e = chosen();
+    if (!e) return '<p class="note">먼저 위에서 회원을 선택하세요.</p>';
+    const minutes = lessonLength(e);
+    if (!minutes) return '<p class="note">관리자가 이 등록의 계약 수업 시간을 먼저 설정해야 합니다.</p>';
+    const options = [
+      {kind: 'regular', status: 'attended', label: minutes === 30 ? 'PT' : '수업'},
+      {kind: 'regular', status: 'no_show', label: 'NOSHOW (차감)'},
+      {kind: 'service', status: 'attended', label: '서비스'}
+    ];
+    return '<p class="note">' + esc(e.member_name) + ' · 계약 ' + minutes + '분 수업</p><div class="duration-choice">' + options.map(option => {
+      const active = sessionType === option.kind && attendanceStatus === option.status;
+      return '<button type="button" data-pick-kind="' + option.kind + '" data-pick-attendance="' + option.status + '" aria-pressed="' + active + '" class="' + (active ? 'active' : '') + '">' + minutes + '분 ' + option.label + '</button>';
+    }).join('') + '</div><p class="note">서비스: 회원 회차 차감 없음 · 수당 없음 · 트레이너별 월 10회 · 이번 달 ' + serviceUsage() + '/10회</p>';
+  };
+  const pendingCount = () => pendingLessons.filter(x => x.date === date).length;
+  picker.innerHTML = '<style>#member-picker{border:0;border-radius:12px;padding:20px;width:min(460px,94vw);max-height:90vh;overflow-y:auto;box-shadow:0 18px 50px #0005}#member-picker::backdrop{background:#0007}.member-picker-list{max-height:min(35vh,320px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;display:grid;gap:8px}.member-picker-list button{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;padding:12px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#222;gap:8px}.member-picker-list button:disabled{opacity:.55;cursor:not-allowed}.member-picker-list button.selected{background:#fff0e6;border-color:#ff5b1f;outline:3px solid #ff5b1f;outline-offset:-3px;box-shadow:0 0 0 4px #ff5b1f55;font-weight:800}.member-picker-list button span{font-size:11px;text-align:right}.member-picker-list button.good{border-left:7px solid #36a65d}.member-picker-list button.caution{border-left:7px solid #e6b800}.member-picker-list button.low{border-left:7px solid #de4040}.duration-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.duration-choice button{width:100%;border:1px solid #bbb;border-radius:6px;padding:10px;background:#fff;color:#222}.duration-choice button[data-pick-attendance="no_show"]{border-style:dashed}.duration-choice button.active{background:#ff5b1f;color:#fff;border-color:#ff5b1f}.dialog-actions{display:flex;justify-content:flex-end;gap:8px}.close,.confirm{border:0;border-radius:5px;padding:8px 12px}.close{background:#333;color:#fff}.confirm{background:#ff5b1f;color:#fff}</style>' +
+    '<div class="dialog-actions"><button type="button" class="close" data-close>닫기</button><button type="button" class="confirm" data-confirm-day>' + (editingSession ? '변경 저장' : '확인 · ' + pendingCount() + '건 저장') + '</button></div>' +
+    '<h2>' + date + ' ' + time + (editingSession ? ' 수업 변경' : ' 수업 선택') + '</h2><p>회원을 먼저 고른 뒤 수업 종류를 선택하세요.</p><div class="member-picker-list">' + memberList + '</div><div id="lesson-choices">' + choiceMarkup() + '</div><p id="picker-selection" role="status">' + (chosen() ? '선택한 회원: ' + esc(chosen().member_name) : '회원을 선택하세요.') + '</p>';
+  picker.onclick = async ev => {
+    if (ev.target.closest('[data-close]')) { picker.close(); return; }
+    if (ev.target.closest('[data-confirm-day]')) {
+      if (editingSession) {
+        const e = chosen();
+        if (!e || !sessionType) { message('회원과 수업 종류를 선택하세요.'); return; }
+        const {error} = await db.from('completed_sessions').update({
+          enrollment_id: e.id, trainer_id: e.trainer_id, duration_minutes: lessonLength(e),
+          attendance_status: sessionType === 'service' ? 'attended' : attendanceStatus,
+          session_type: sessionType, quantity: sessionType === 'service' ? 0 : 1
+        }).eq('id', editingSession.id);
+        if (error) { message('수업 변경 실패: ' + error.message); return; }
+        picker.close(); message('수업 내용을 변경했습니다.'); await load(); return;
+      }
+      if (!pendingCount()) { message('회원과 수업 종류를 먼저 선택하세요.'); return; }
+      if (await savePendingDay(date)) picker.close();
+      return;
+    }
+    const memberButton = ev.target.closest('button[data-pick-member]');
+    if (memberButton) {
+      const nextId = Number(memberButton.dataset.pickMember);
+      if (selectedEnrollmentId !== nextId) {
+        selectedEnrollmentId = nextId;
+        sessionType = null;
+        attendanceStatus = 'attended';
+        if (!editingSession) {
+          pendingLessons = pendingLessons.filter(x => x.date !== date || x.time !== time);
+          renderWeeklySchedule(); renderDaily();
+        }
+      }
+      picker.querySelectorAll('[data-pick-member]').forEach(x => x.classList.toggle('selected', Number(x.dataset.pickMember) === nextId));
+      picker.querySelector('#lesson-choices').innerHTML = choiceMarkup();
+      picker.querySelector('#picker-selection').textContent = '선택한 회원: ' + chosen().member_name + ' · ' + lessonLength(chosen()) + '분';
+      picker.querySelector('[data-confirm-day]').textContent = editingSession ? '변경 저장' : '확인 · ' + pendingCount() + '건 저장';
+      return;
+    }
+    const choiceButton = ev.target.closest('button[data-pick-kind]');
+    if (!choiceButton || !chosen()) return;
+    sessionType = choiceButton.dataset.pickKind;
+    attendanceStatus = sessionType === 'service' ? 'attended' : choiceButton.dataset.pickAttendance;
+    if (!editingSession) {
+      const row = {enrollmentId: chosen().id, trainerId: chosen().trainer_id, date, time,
+        duration: lessonLength(chosen()), attendanceStatus, sessionType};
+      const index = pendingLessons.findIndex(x => x.date === date && x.time === time);
+      if (index >= 0) pendingLessons[index] = row; else pendingLessons.push(row);
+      renderWeeklySchedule(); renderDaily();
+    }
+    picker.querySelector('#lesson-choices').innerHTML = choiceMarkup();
+    picker.querySelector('#picker-selection').textContent = '선택한 회원: ' + chosen().member_name + ' · ' + time + ' · ' + lessonLength(chosen()) + '분 · ' + (sessionType === 'service' ? '서비스' : attendanceStatus === 'no_show' ? 'NOSHOW (차감)' : '정규수업');
+    picker.querySelector('[data-confirm-day]').textContent = editingSession ? '변경 저장' : '확인 · ' + pendingCount() + '건 저장';
+    if (!editingSession) message(date + ' ' + time + ' 수업을 저장 대기 목록에 추가했습니다.');
+  };
+  picker.showModal();
 }
 function updateProgress(){const e=enrollments.find(x=>x.id===Number($('session-enrollment').value));if(!e){$('progress-state').textContent='회원 선택 후 진행 회차와 남은 수업 수를 확인할 수 있습니다.';$('progress-state').className='progress-state';return}const used=sessions.filter(s=>s.enrollment_id===e.id).reduce((n,s)=>n+Number(s.quantity),0),remaining=Math.max(0,Number(e.session_count)-used);$('progress-state').textContent=(used+1)+'/'+e.session_count+'회 진행 예정 · '+remaining+'회 남음';$('progress-state').className='progress-state '+statusClass(remaining);}
 function renderWeeklySchedule(){
@@ -121,7 +215,7 @@ function render(){
   $('ended').textContent=new Set(enrollments.filter(e=>inMonth(e.ends_at,start,end)).map(e=>e.member_name)).size;
   $('rate').textContent=monthly.length?Math.round(100*renew/monthly.length)+'%':'0%';
   $('summary').innerHTML=trainers.map(t=>{let es=monthly.filter(e=>e.trainer_id===t.id),ss=completed.filter(s=>s.trainer_id===t.id),noShow=ss.filter(s=>s.attendance_status==='no_show').reduce((n,s)=>n+Number(s.quantity),0),service=ss.filter(s=>s.session_type==='service').length,commission=ss.reduce((n,s)=>n+Number(s.payout_amount),0);return '<tr><td>'+esc(t.name)+'</td><td>'+won(es.reduce((n,e)=>n+Number(e.price),0))+'</td><td>'+ss.reduce((n,s)=>n+Number(s.quantity),0)+'회'+(noShow?' · NOSHOW '+noShow+'회':'')+(service?' · 서비스 '+service+'회':'')+'</td><td>'+won(commission+Number(t.base_salary))+'</td><td>'+(es.length?Math.round(100*es.filter(e=>e.is_renewal).length/es.length):0)+'%</td></tr>'}).join('')||'<tr><td colspan="5">트레이너 없음</td></tr>';
-  $('enrollment-list').innerHTML=enrollments.slice(0,40).map(e=>'<tr><td>'+e.registered_at+'</td><td>'+esc(e.member_name)+'</td><td>'+esc(trainers.find(t=>t.id===e.trainer_id)?.name||e.trainer_name)+'</td><td>'+e.session_count+'회</td><td>'+(e.ends_at||'미입력')+'</td><td>'+(e.is_renewal?'재등록':'신규')+'</td><td>'+(e.payment_method==='card'?'카드':e.payment_method==='cash'?'현금':'미지정')+'</td><td>'+won(e.price)+'</td><td><button class="small secondary" data-enrollment-id="'+e.id+'">수정</button></td></tr>').join('');if(!$('enrollment-list').innerHTML)empty('enrollment-list',9);
+  $('enrollment-list').innerHTML=enrollments.slice(0,40).map(e=>'<tr><td>'+e.registered_at+'</td><td>'+esc(e.member_name)+'</td><td>'+esc(trainers.find(t=>t.id===e.trainer_id)?.name||e.trainer_name)+'</td><td>'+e.session_count+'회</td><td>'+(e.contract_duration_minutes?e.contract_duration_minutes+'분':'<strong>미설정</strong>')+'</td><td>'+(e.ends_at||'미입력')+'</td><td>'+(e.is_renewal?'재등록':'신규')+'</td><td>'+(e.payment_method==='card'?'카드':e.payment_method==='cash'?'현금':'미지정')+'</td><td>'+won(e.price)+'</td><td><button class="small secondary" data-enrollment-id="'+e.id+'">수정</button></td></tr>').join('');if(!$('enrollment-list').innerHTML)empty('enrollment-list',10);
   $('trainer-list').innerHTML=trainers.map(t=>'<tr><td>'+esc(t.name)+'</td><td>'+esc(t.login_id)+'</td><td><input aria-label="'+esc(t.name)+' 정산 비율" type="number" min="0" max="100" value="'+Math.round(Number(t.share_rate)*100)+'" data-share="'+t.id+'"></td><td><input aria-label="'+esc(t.name)+' 기본급" type="number" min="0" value="'+Number(t.base_salary)+'" data-base="'+t.id+'"></td><td>'+(t.active?'사용':'비활성')+'</td><td><button class="small" data-save-trainer="'+t.id+'">저장</button> <button class="small secondary" data-trainer-id="'+t.id+'">'+(t.active?'비활성화':'복구')+'</button></td></tr>').join('');
   let six=[];for(let offset=5;offset>=0;offset--){const d=new Date(start+'T12:00:00');d.setMonth(d.getMonth()-offset);const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');for(const t of trainers){const es=enrollments.filter(e=>e.trainer_id===t.id&&e.registered_at?.startsWith(key)),renew=es.filter(e=>e.is_renewal).length;six.push('<tr><td>'+key+'</td><td>'+esc(t.name)+'</td><td>'+es.length+'건</td><td>'+renew+'건</td><td>'+(es.length?Math.round(100*renew/es.length):0)+'%</td></tr>')}}$('six-month').innerHTML=six.join('');if(!six.length)empty('six-month',5);
  }
@@ -153,8 +247,8 @@ $('login-form').onsubmit=async ev=>{ev.preventDefault();const id=$('email').valu
 $('logout').onclick=async()=>{await db.auth.signOut();await show()};
 for(const name of ['dashboard','sessions','trainers'])$('tab-'+name).onclick=()=>view(name);
 $('refresh').onclick=()=>load();$('month').onchange=render;
-$('enrollment-form').onsubmit=async ev=>{ev.preventDefault();const tid=Number($('trainer').value),trainer=trainers.find(t=>t.id===tid);if($('ends').value<$('registered').value){message('종료일은 등록일 이후로 입력하세요.');return}const record={member_name:$('member').value.trim(),trainer_id:tid,trainer_name:trainer.name,registered_at:$('registered').value,ends_at:$('ends').value,session_count:Number($('sessions').value),price:Number($('price').value),payment_method:$('payment').value,is_renewal:$('type').value==='renewal'};const result=editingEnrollmentId?await db.from('member_enrollments').update(record).eq('id',editingEnrollmentId):await db.from('member_enrollments').insert(record);if(result.error){message('등록 저장 실패: '+result.error.message);return}editingEnrollmentId=null;ev.target.reset();$('registered').value=today();ev.target.querySelector('button').textContent='등록 내역 저장';message('등록 내역을 저장했습니다.');await load()};
-$('enrollment-list').onclick=ev=>{const b=ev.target.closest('button[data-enrollment-id]');if(!b)return;const e=enrollments.find(x=>x.id===Number(b.dataset.enrollmentId));if(!e)return;editingEnrollmentId=e.id;$('member').value=e.member_name;$('trainer').value=e.trainer_id||'';$('registered').value=e.registered_at;$('ends').value=e.ends_at||'';$('sessions').value=e.session_count;$('price').value=e.price;$('payment').value=e.payment_method||'';$('type').value=e.is_renewal?'renewal':'new';$('enrollment-form').querySelector('button').textContent='수정 내역 저장';$('enrollment-form').scrollIntoView({behavior:'smooth'});message('기존 등록을 수정 중입니다. 결제 방식과 종료일을 확인하세요.')};
+$('enrollment-form').onsubmit=async ev=>{ev.preventDefault();const tid=Number($('trainer').value),trainer=trainers.find(t=>t.id===tid);if($('ends').value<$('registered').value){message('종료일은 등록일 이후로 입력하세요.');return}const record={member_name:$('member').value.trim(),trainer_id:tid,trainer_name:trainer.name,registered_at:$('registered').value,ends_at:$('ends').value,session_count:Number($('sessions').value),contract_duration_minutes:Number($('contract-duration').value),price:Number($('price').value),payment_method:$('payment').value,is_renewal:$('type').value==='renewal'};const result=editingEnrollmentId?await db.from('member_enrollments').update(record).eq('id',editingEnrollmentId):await db.from('member_enrollments').insert(record);if(result.error){message('등록 저장 실패: '+result.error.message);return}editingEnrollmentId=null;ev.target.reset();$('registered').value=today();ev.target.querySelector('button').textContent='등록 내역 저장';message('등록 내역을 저장했습니다.');await load()};
+$('enrollment-list').onclick=ev=>{const b=ev.target.closest('button[data-enrollment-id]');if(!b)return;const e=enrollments.find(x=>x.id===Number(b.dataset.enrollmentId));if(!e)return;editingEnrollmentId=e.id;$('member').value=e.member_name;$('trainer').value=e.trainer_id||'';$('registered').value=e.registered_at;$('ends').value=e.ends_at||'';$('sessions').value=e.session_count;$('contract-duration').value=e.contract_duration_minutes||'';$('price').value=e.price;$('payment').value=e.payment_method||'';$('type').value=e.is_renewal?'renewal':'new';$('enrollment-form').querySelector('button').textContent='수정 내역 저장';$('enrollment-form').scrollIntoView({behavior:'smooth'});message('기존 등록을 수정 중입니다. 계약 수업 시간과 결제 방식을 확인하세요.')};
 $('session-date').onchange=()=>{setTimeOptions();slotPicked=false;$('selected-slot').textContent='시간표의 빈 칸을 선택하세요.'};$('session-duration').onchange=setTimeOptions;$('session-enrollment').onchange=()=>{$('schedule-member').value=$('session-enrollment').value;updateProgress()};$('schedule-member').onchange=()=>{$('session-enrollment').value=$('schedule-member').value;updateProgress()};$('week-start').onchange=()=>{mobileDate=mondayFromWeek($('week-start').value);renderWeeklySchedule();renderDaily()};
 $('weekly-schedule').onclick=ev=>{const day=ev.target.closest('button[data-mobile-date]');if(day){mobileDate=day.dataset.mobileDate;renderWeeklySchedule();renderDaily();return}const edit=ev.target.closest('button[data-edit-session]');if(edit){const s=sessions.find(x=>x.id===Number(edit.dataset.editSession));if(s)openMemberPicker(s.session_date,String(s.starts_at||'').slice(0,5),s);return}const slot=ev.target.closest('button[data-slot-date]');if(!slot)return;openMemberPicker(slot.dataset.slotDate,slot.dataset.slotTime)};
 $('mobile-days').onclick=ev=>{const button=ev.target.closest('[data-mobile-date]');if(!button)return;mobileDate=button.dataset.mobileDate;renderWeeklySchedule();renderDaily()};
