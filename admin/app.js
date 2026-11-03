@@ -54,7 +54,7 @@ function confirmTrainerDelete(trainer){
   dialog.showModal();
  });
 }
-let user=null,admin=false,ownTrainer=null,trainers=[],enrollments=[],sessions=[],closedMonths=[],dailyConfirmations=[],monthlyArchives=[],editingEnrollmentId=null,selectedMemberFileId=null,slotPicked=false,pendingLessons=[],mobileDate=today();
+let user=null,admin=false,ownTrainer=null,trainers=[],enrollments=[],sessions=[],closedMonths=[],dailyConfirmations=[],monthlyArchives=[],operatingExpenses=[],editingEnrollmentId=null,selectedMemberFileId=null,slotPicked=false,pendingLessons=[],mobileDate=today();
 const isClosed=date=>closedMonths.includes(String(date).slice(0,7));
 const isPastMonth=date=>String(date).slice(0,7)<today().slice(0,7);
 const selectedMonth=()=>$('week-year').value+'-'+String($('week-month').value).padStart(2,'0');
@@ -264,7 +264,7 @@ function setTimeOptions(){
  if(times.includes(old))$('session-time').value=old;
  $('hours').textContent=(dow===0?'일요일 10:00–18:00':dow===6?'토요일 10:00–16:00':'평일 09:00–23:00')+' · '+duration+'분 수업을 기록합니다.';
 }
-function view(name){for(const [button,panel] of [['dashboard','dashboard'],['annual','annual-panel'],['insights','insights-panel'],['member-files','member-files-panel'],['sessions','sessions-panel'],['trainers','trainers-panel'],['departed','departed-panel']]){$('tab-'+button).setAttribute('aria-selected',String(button===name));$(panel).classList.toggle('hidden',button!==name)}}
+function view(name){for(const [button,panel] of [['dashboard','dashboard'],['profit','profit-panel'],['annual','annual-panel'],['insights','insights-panel'],['member-files','member-files-panel'],['sessions','sessions-panel'],['trainers','trainers-panel'],['departed','departed-panel']]){$('tab-'+button).setAttribute('aria-selected',String(button===name));$(panel).classList.toggle('hidden',button!==name)}}
 function trainerEvaluation(trainer,since,end,cutoff=today()){
  const memberKey=e=>String(e.member_name||'').trim().toLocaleLowerCase();
  const ended=enrollments.filter(e=>e.trainer_id===trainer.id&&e.status!=='refunded'&&e.ends_at>=since&&e.ends_at<end&&e.ends_at<=cutoff);
@@ -313,6 +313,62 @@ function renderMemberFiles(){
  }).join('');
  if(!rows.length)empty('enrollment-list',11);
 }
+function profitForMonth(month){
+ const start=month+'-01',end=dateText(new Date(Number(month.slice(0,4)),Number(month.slice(5)),1,12));
+ const monthSessions=sessions.filter(session=>inMonth(session.session_date,start,end));
+ const revenue=monthSessions.reduce((sum,session)=>{
+  const enrollment=enrollments.find(row=>row.id===session.enrollment_id);
+  if(!enrollment||session.session_type==='service'||!Number(enrollment.session_count))return sum;
+  return sum+net(enrollment)/Number(enrollment.session_count)*Number(session.quantity||0);
+ },0);
+ const sessionPay=monthSessions.reduce((sum,session)=>sum+Number(session.payout_amount||0),0);
+ const employed=trainers.filter(trainer=>(!trainer.hire_date||trainer.hire_date<end)&&(!trainer.departed_at||trainer.departed_at>=start));
+ const basePay=employed.reduce((sum,trainer)=>sum+Number(trainer.base_salary||0),0);
+ const expense=operatingExpenses.find(row=>row.month?.slice(0,7)===month)||{};
+ const rent=Number(expense.rent||0),management=Number(expense.management_fee||0),other=Number(expense.other_cost||0);
+ const operatingCosts=rent+management+other,totalCost=sessionPay+basePay+operatingCosts,profit=revenue-totalCost;
+ const averageShare=employed.length?employed.reduce((sum,trainer)=>sum+Number(trainer.share_rate||0),0)/employed.length:0.5;
+ const payoutRate=revenue>0?sessionPay/revenue:averageShare,contributionRate=1-payoutRate,fixedCost=basePay+operatingCosts;
+ const breakEvenSales=contributionRate>0?fixedCost/contributionRate:null;
+ return {month,revenue,sessionPay,basePay,rent,management,other,totalCost,profit,margin:revenue?profit/revenue*100:null,payoutRate,breakEvenSales,remaining:breakEvenSales===null?null:Math.max(0,breakEvenSales-revenue),sessionCount:monthSessions.reduce((sum,row)=>sum+Number(row.quantity||0),0)};
+}
+function renderProfit(){
+ if(!admin)return;
+ const month=$('profit-month').value||today().slice(0,7),result=profitForMonth(month),expense=operatingExpenses.find(row=>row.month?.slice(0,7)===month);
+ $('profit-revenue').textContent=won(result.revenue);
+ $('operating-profit').textContent=won(result.profit);
+ $('operating-margin').textContent=result.margin===null?'—':result.margin.toFixed(1)+'%';
+ $('break-even-remaining').textContent=result.remaining===null?'계산 불가':won(result.remaining);
+ $('break-even-note').textContent=result.remaining===0?'손익분기점 도달':'예상 수당 비율 '+Math.round(result.payoutRate*100)+'% 반영';
+ $('profit-state').textContent=result.profit>=0?'현재 흑자':'현재 적자';
+ $('operating-profit').closest('.metric').classList.toggle('positive',result.profit>=0);
+ $('operating-profit').closest('.metric').classList.toggle('negative',result.profit<0);
+ $('expense-rent').value=Number(expense?.rent||0);
+ $('expense-management').value=Number(expense?.management_fee||0);
+ $('expense-other').value=Number(expense?.other_cost||0);
+ $('expense-status').textContent=expense?'저장된 '+Number(month.slice(5))+'월 운영비를 표시합니다.':'아직 저장된 운영비가 없습니다.';
+ $('detail-revenue').textContent=won(result.revenue);
+ $('detail-session-pay').textContent=won(result.sessionPay);
+ $('detail-base-pay').textContent=won(result.basePay);
+ $('detail-rent').textContent=won(result.rent);
+ $('detail-management').textContent=won(result.management);
+ $('detail-other').textContent=won(result.other);
+ $('detail-total-cost').textContent=won(result.totalCost);
+ const closed=closedMonths.filter(key=>key<=today().slice(0,7)).sort().reverse().slice(0,3),closedResults=closed.map(profitForMonth);
+ $('three-month-average').textContent=closedResults.length?won(closedResults.reduce((sum,row)=>sum+row.profit,0)/closedResults.length):'—';
+ $('three-month-note').textContent=closed.length?closed.map(key=>key.replace('-','년 ')+'월').join(' · '):'마감된 월이 없습니다.';
+ const refundable=enrollments.map(enrollment=>{
+  const remaining=Math.max(0,Number(enrollment.session_count||0)-usedSessions(enrollment));
+  return {enrollment,remaining,amount:remaining?refundEstimate(enrollment):0};
+ }).filter(row=>availableEnrollment(row.enrollment)&&row.remaining>0).sort((a,b)=>b.amount-a.amount);
+ $('refund-liability').textContent=won(refundable.reduce((sum,row)=>sum+row.amount,0));
+ $('refund-liability-note').textContent='이용 중 계약 '+refundable.length+'건 · 실제 환불 전 참고액';
+ $('refund-liability-list').innerHTML=refundable.map(row=>{
+  const enrollment=row.enrollment,trainer=trainers.find(item=>item.id===enrollment.trainer_id);
+  return '<tr><td>'+esc(enrollment.member_name)+'</td><td>'+esc(trainer?.name||enrollment.trainer_name||'미지정')+'</td><td>'+row.remaining+'/'+enrollment.session_count+'회</td><td>'+(enrollment.payment_method==='card'?'카드':enrollment.payment_method==='cash'?'현금':'미지정')+'</td><td>'+won(row.amount)+'</td></tr>';
+ }).join('');
+ if(!refundable.length)empty('refund-liability-list',5);
+}
 function renderAnnual(){
  const year=$('annual-year').value;
  const months=Array.from({length:12},(_,i)=>{
@@ -359,6 +415,7 @@ function render(){
   renderEvaluationChart(current,currentEnd);
   renderDepartedTrainers();
   renderAnnual();
+  renderProfit();
  }
  const allowed=enrollments.filter(e=>availableEnrollment(e)&&isActiveTrainer(e.trainer_id)&&(admin||e.trainer_id===ownTrainer?.id)&&e.payment_method);
  const enrollmentOptions='<option value="">선택하세요</option>'+allowed.filter(e=>e.trainer_id).map(e=>{const used=sessions.filter(s=>s.enrollment_id===e.id).reduce((n,s)=>n+Number(s.quantity),0),next=used+1;return '<option value="'+e.id+'" '+(next>e.session_count?'disabled':'')+'>'+esc(e.member_name)+' · '+next+'/'+e.session_count+(next>e.session_count?' (완료)':'')+'</option>'}).join('');$('session-enrollment').innerHTML=enrollmentOptions;$('schedule-member').innerHTML=enrollmentOptions;
@@ -371,10 +428,10 @@ function render(){
 async function fetchMonthSessions(){const month=selectedMonth(),start=month+'-01',end=dateText(new Date(Number(month.slice(0,4)),Number(month.slice(5)),1,12)),rows=[];for(let offset=0;offset<100000;offset+=1000){const result=await db.from('completed_sessions').select('*').gte('session_date',start).lt('session_date',end).order('session_date',{ascending:false}).range(offset,offset+999);if(result.error)return result;rows.push(...result.data);if(result.data.length<1000)break}return {data:rows,error:null}}
 async function fetchAllEnrollments(){const rows=[];for(let offset=0;;offset+=1000){const result=await db.from('member_enrollments').select('*').order('id').range(offset,offset+999);if(result.error)return result;rows.push(...result.data);if(result.data.length<1000)break}return {data:rows,error:null}}
 async function load(){
- const [tr,en,se,cl,dc,ma]=await Promise.all([db.from('trainers').select('*').order('sort_order'),fetchAllEnrollments(),db.from('completed_sessions').select('*').order('session_date',{ascending:false}).limit(5000),db.from('monthly_settlements').select('month'),db.from('daily_confirmations').select('session_date,trainer_id,confirmed_at').order('session_date',{ascending:false}).limit(5000),db.from('trainer_monthly_archives').select('month,trainer_id,session_count,payout_total,saved_at').order('month',{ascending:false}).limit(5000)]);
- const error=tr.error||en.error||se.error||cl.error||dc.error||ma.error;if(error){message('데이터를 불러오지 못했습니다: '+error.message);return}
+ const [tr,en,se,cl,dc,ma,ex]=await Promise.all([db.from('trainers').select('*').order('sort_order'),fetchAllEnrollments(),db.from('completed_sessions').select('*').order('session_date',{ascending:false}).limit(5000),db.from('monthly_settlements').select('month'),db.from('daily_confirmations').select('session_date,trainer_id,confirmed_at').order('session_date',{ascending:false}).limit(5000),db.from('trainer_monthly_archives').select('month,trainer_id,session_count,payout_total,saved_at').order('month',{ascending:false}).limit(5000),admin?db.from('operating_expenses').select('*').order('month',{ascending:false}):Promise.resolve({data:[],error:null})]);
+ const error=tr.error||en.error||se.error||cl.error||dc.error||ma.error||ex.error;if(error){message('데이터를 불러오지 못했습니다: '+error.message);return}
  const page=await fetchMonthSessions();if(page.error){message('월별 수업을 불러오지 못했습니다: '+page.error.message);return}
- trainers=tr.data||[];enrollments=(en.data||[]).sort((a,b)=>b.registered_at.localeCompare(a.registered_at)||b.id-a.id);sessions=[...new Map([...(se.data||[]),...page.data].map(s=>[s.id,s])).values()];closedMonths=(cl.data||[]).map(x=>x.month.slice(0,7));dailyConfirmations=dc.data||[];monthlyArchives=ma.data||[];ownTrainer=trainers.find(t=>t.login_id&&staffEmail(t.login_id)===user.email?.toLowerCase());
+ trainers=tr.data||[];enrollments=(en.data||[]).sort((a,b)=>b.registered_at.localeCompare(a.registered_at)||b.id-a.id);sessions=[...new Map([...(se.data||[]),...page.data].map(s=>[s.id,s])).values()];closedMonths=(cl.data||[]).map(x=>x.month.slice(0,7));dailyConfirmations=dc.data||[];monthlyArchives=ma.data||[];operatingExpenses=ex.data||[];ownTrainer=trainers.find(t=>t.login_id&&staffEmail(t.login_id)===user.email?.toLowerCase());
  const missing=[...new Set(page.data.map(s=>s.enrollment_id))].filter(id=>!enrollments.some(e=>e.id===id));for(let i=0;i<missing.length;i+=100){const extra=await db.from('member_enrollments').select('*').in('id',missing.slice(i,i+100));if(extra.error){message('과거 회원 정보를 불러오지 못했습니다: '+extra.error.message);return}enrollments.push(...extra.data)}
  render();
 }
@@ -414,8 +471,9 @@ $('change-password-trigger').onclick=()=>{$('app').classList.add('hidden');$('pa
 $('password-cancel').onclick=()=>{$('change-password-form').reset();$('password-panel').classList.add('hidden');$('app').classList.remove('hidden')};
 $('change-password-form').onsubmit=async ev=>{ev.preventDefault();const current=$('current-password').value,next=$('new-password').value,confirm=$('confirm-password').value;if(next!==confirm){$('password-error').textContent='새 비밀번호가 서로 다릅니다.';return}if(next.length<8||next==='111111'||next===current){$('password-error').textContent='새 비밀번호는 8자 이상이며 초기·현재 비밀번호와 달라야 합니다.';return}try{await accountAction({action:'change_password',currentPassword:current,newPassword:next})}catch(error){$('password-error').textContent=error.message;return}ev.target.reset();await db.auth.signOut();await show();message('비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인하세요.')};
 $('logout').onclick=async()=>{await db.auth.signOut();await show()};
-for(const name of ['dashboard','annual','insights','member-files','sessions','trainers','departed'])$('tab-'+name).onclick=()=>view(name);
-$('refresh').onclick=()=>load();$('month').onchange=render;$('annual-year').onchange=renderAnnual;
+for(const name of ['dashboard','profit','annual','insights','member-files','sessions','trainers','departed'])$('tab-'+name).onclick=()=>view(name);
+$('refresh').onclick=()=>load();$('month').onchange=render;$('annual-year').onchange=renderAnnual;$('profit-month').onchange=renderProfit;
+$('expense-form').onsubmit=async ev=>{ev.preventDefault();const month=$('profit-month').value,record={month:month+'-01',rent:Number($('expense-rent').value),management_fee:Number($('expense-management').value),other_cost:Number($('expense-other').value),updated_at:new Date().toISOString(),updated_by:user.id};if([record.rent,record.management_fee,record.other_cost].some(value=>!Number.isInteger(value)||value<0)){message('운영비는 0원 이상의 원 단위 금액으로 입력하세요.');return}const {error}=await db.from('operating_expenses').upsert(record,{onConflict:'month'});if(error){message('운영비 저장 실패: '+error.message);return}message(month+' 운영비를 저장했습니다.');await load()};
 $('enrollment-form').onsubmit=async ev=>{ev.preventDefault();const tid=Number($('trainer').value),trainer=trainers.find(t=>t.id===tid);if(!trainer){message('담당 트레이너를 확인하세요.');return}if($('ends').value<$('registered').value){message('종료일은 등록일 이후로 입력하세요.');return}const record={member_name:$('member').value.trim(),trainer_id:tid,trainer_name:trainer.name,registered_at:$('registered').value,ends_at:$('ends').value,session_count:Number($('sessions').value),contract_duration_minutes:Number($('contract-duration').value),price:Number($('price').value),payment_method:$('payment').value,is_renewal:$('type').value==='renewal'};const result=editingEnrollmentId?await db.from('member_enrollments').update(record).eq('id',editingEnrollmentId):await db.from('member_enrollments').insert(record);if(result.error){message('등록 저장 실패: '+result.error.message);return}editingEnrollmentId=null;ev.target.reset();for(const field of ev.target.querySelectorAll('input,select'))field.disabled=false;$('registered').value=today();ev.target.querySelector('button').textContent='등록 내역 저장';message('등록 내역을 저장했습니다.');await load()};
 $('enrollment-list').onclick=ev=>{const b=ev.target.closest('button[data-enrollment-id]');if(b)openMemberFile(Number(b.dataset.enrollmentId))};
 $('member-search').oninput=renderMemberFiles;$('show-removed').onchange=renderMemberFiles;
@@ -438,5 +496,6 @@ $('session-form').onsubmit=async ev=>{ev.preventDefault();const id=Number($('ses
 $('trainer-form').onsubmit=async ev=>{ev.preventDefault();const id=$('trainer-email').value.trim().toLowerCase(),initial=$('trainer-initial-password').value;try{await accountAction({action:'create',name:$('trainer-name').value.trim(),loginId:id,initialPassword:initial,shareRate:Number($('trainer-share').value)/100,baseSalary:Number($('trainer-base').value)})}catch(error){message('트레이너 계정 추가 실패: '+error.message);return}ev.target.reset();message('트레이너 계정 '+id+'을 발급했습니다. 첫 로그인에서 비밀번호 변경이 필요합니다.');await load()};
 $('trainer-list').onclick=async ev=>{const reset=ev.target.closest('button[data-reset-trainer]'),save=ev.target.closest('button[data-save-trainer]'),toggle=ev.target.closest('button[data-trainer-id]');if(!reset&&!save&&!toggle)return;const id=Number(reset?.dataset.resetTrainer||save?.dataset.saveTrainer||toggle?.dataset.trainerId),t=trainers.find(x=>x.id===id);if(!t)return;if(reset){const initial=document.querySelector('[data-initial="'+id+'"]').value;if(initial.length<6){message('초기 비밀번호는 6자 이상이어야 합니다.');return}if(!await confirmAccountReset(t.name))return;try{await accountAction({action:'reset',trainerId:id,initialPassword:initial})}catch(error){message('계정 초기화 실패: '+error.message);return}message(t.name+' 계정을 발급·초기화했습니다. 첫 로그인에서 비밀번호 변경이 필요합니다.');await load();return}let dates=null;if(toggle){dates=await confirmTrainerDelete(t);if(!dates)return}const values=save?{share_rate:Number(document.querySelector('[data-share="'+id+'"]').value)/100,base_salary:Number(document.querySelector('[data-base="'+id+'"]').value),hire_date:document.querySelector('[data-hire="'+id+'"]').value||null}:{active:false,...dates};const {error}=await db.from('trainers').update(values).eq('id',id);message(error?'트레이너 변경 실패: '+error.message:(toggle?'퇴사 트레이너 페이지로 이동했습니다. 로그인과 새 회원 배정이 중지되었습니다.':'트레이너 설정을 저장했습니다.'));if(!error)await load()};
 $('departed-list').onclick=async ev=>{const button=ev.target.closest('button[data-restore-trainer]');if(!button)return;const id=Number(button.dataset.restoreTrainer),trainer=trainers.find(t=>t.id===id&&!t.active);if(!trainer)return;const {error}=await db.from('trainers').update({active:true,departed_at:null}).eq('id',id);message(error?'복구 실패: '+error.message:trainer.name+' 트레이너를 현직 목록에 복구했습니다.');if(!error)await load()};
-$('session-form').closest('.card').classList.add('hidden');$('schedule-member').closest('.field').classList.add('hidden');$('refresh').insertAdjacentHTML('afterend','<span id="settlement-state" class="note admin-only"></span><button id="finalize-month" type="button" class="admin-only secondary">급여정산 확정</button>');$('finalize-month').onclick=async()=>{const month=$('month').value;if(isClosed(month))return;if(!window.confirm(month+' 월 급여정산을 확정할까요? 확정 후에는 해당 월 수업을 추가하거나 수정할 수 없습니다.'))return;const {error}=await db.from('monthly_settlements').insert({month:month+'-01'});if(error){message('정산 확정 실패: '+error.message);return}pendingLessons=pendingLessons.filter(x=>!x.date.startsWith(month));message(month+' 월 급여정산을 확정했습니다.');await load()};$('month').value=today().slice(0,7);$('registered').value=today();$('session-date').value=today();$('week-start').value=weekValue(today());initializeWeekPicker();const requestedMonth=new URL(location.href).searchParams.get('month');if(/^20(?:2[0-9]|[3-6][0-9]|70)-(0[1-9]|1[0-2])$/.test(requestedMonth||'')){$('week-year').value=requestedMonth.slice(0,4);$('week-month').value=String(Number(requestedMonth.slice(5)));refreshWeekNumbers();mobileDate=$('week-number').value;$('week-start').value=weekValue(mobileDate)}setTimeOptions();show();
+$('session-form').closest('.card').classList.add('hidden');$('schedule-member').closest('.field').classList.add('hidden');$('refresh').insertAdjacentHTML('afterend','<span id="settlement-state" class="note admin-only"></span><button id="finalize-month" type="button" class="admin-only secondary">급여정산 확정</button>');$('finalize-month').onclick=async()=>{const month=$('month').value;if(isClosed(month))return;if(!window.confirm(month+' 월 급여정산을 확정할까요? 확정 후에는 해당 월 수업을 추가하거나 수정할 수 없습니다.'))return;const {error}=await db.from('monthly_settlements').insert({month:month+'-01'});if(error){message('정산 확정 실패: '+error.message);return}pendingLessons=pendingLessons.filter(x=>!x.date.startsWith(month));message(month+' 월 급여정산을 확정했습니다.');await load()};$('month').value=today().slice(0,7);$('profit-month').value=today().slice(0,7);$('registered').value=today();$('session-date').value=today();$('week-start').value=weekValue(today());initializeWeekPicker();const requestedMonth=new URL(location.href).searchParams.get('month');if(/^20(?:2[0-9]|[3-6][0-9]|70)-(0[1-9]|1[0-2])$/.test(requestedMonth||'')){$('week-year').value=requestedMonth.slice(0,4);$('week-month').value=String(Number(requestedMonth.slice(5)));refreshWeekNumbers();mobileDate=$('week-number').value;$('week-start').value=weekValue(mobileDate)}setTimeOptions();show();
 setInterval(()=>{if(user&&$('password-panel').classList.contains('hidden')&&!document.activeElement?.closest('#trainer-form,#trainer-list,#enrollment-form,#member-file'))load()},15000);
+
