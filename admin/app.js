@@ -230,7 +230,7 @@ function renderEvaluationChart(start,end){
  const nameKey=e=>e.member_name.trim().toLocaleLowerCase();
  const results=trainers.map(t=>{
   const ended=enrollments.filter(e=>e.trainer_id===t.id&&e.status!=='refunded'&&e.ends_at>=since&&e.ends_at<end&&e.ends_at<=today());
-  const success=ended.filter(e=>enrollments.some(next=>next.id!==e.id&&next.trainer_id===t.id&&next.is_renewal&&nameKey(next)===nameKey(e)&&next.registered_at>e.registered_at&&next.registered_at<=dateAdd(e.ends_at,30))).length;
+  const success=ended.filter(e=>enrollments.some(next=>next.id!==e.id&&next.trainer_id===t.id&&next.is_renewal&&nameKey(next)===nameKey(e)&&next.registered_at>e.registered_at&&next.registered_at<=today()&&next.registered_at<=dateAdd(e.ends_at,30))).length;
   const failure=ended.length-success;
   const refunds=enrollments.filter(e=>e.trainer_id===t.id&&e.refunded_at>=since&&e.refunded_at<end).length;
   return {name:t.name,success,failure,refunds};
