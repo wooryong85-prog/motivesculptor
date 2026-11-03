@@ -13,7 +13,7 @@ const staffEmail=id=>id.toLowerCase()+'@staff.motivegym.co.kr';
 let user=null,admin=false,ownTrainer=null,trainers=[],enrollments=[],sessions=[],closedMonths=[],dailyConfirmations=[],editingEnrollmentId=null,slotPicked=false,pendingLessons=[],mobileDate=today();
 const isClosed=date=>closedMonths.includes(String(date).slice(0,7));
 const isDayFixed=(date,trainerId)=>dailyConfirmations.some(x=>x.session_date===date&&x.trainer_id===trainerId);
-const lessonLocked=(date,trainerId)=>isClosed(date)||(!admin&&isDayFixed(date,trainerId));
+const lessonLocked=(date,trainerId)=>isClosed(date)||isDayFixed(date,trainerId);
 const message=s=>$('msg').textContent=s;
 const empty=(id,cols)=>$(id).innerHTML='<tr><td colspan="'+cols+'" class="muted">내역이 없습니다.</td></tr>';
 const mins=t=>{let [h,m]=String(t||'00:00').slice(0,5).split(':').map(Number);return h*60+m};
@@ -26,7 +26,7 @@ const mondayFromWeek=week=>{if(!week)return mondayOf(today());const [year,no]=we
 const statusClass=remaining=>remaining<=2?'low':remaining<=5?'caution':'good';
 async function savePendingDay(date){if(isClosed(date)){message('월 정산이 확정되어 이 달 수업을 변경할 수 없습니다.');return}const rows=pendingLessons.filter(x=>x.date===date);if(!rows.length){message('저장할 수업을 먼저 선택하세요.');return}for(const row of rows){const {error}=await db.from('completed_sessions').insert({enrollment_id:row.enrollmentId,trainer_id:row.trainerId,session_date:row.date,starts_at:row.time,duration_minutes:row.duration,quantity:1});if(error){message('수업 저장 실패: '+error.message);return}}pendingLessons=pendingLessons.filter(x=>x.date!==date);message(date+' 수업 '+rows.length+'건을 저장했습니다.');await load()}
 function openMemberPicker(date,time,editingSession=null){
- if(isClosed(date)||(!admin&&isDayFixed(date,ownTrainer?.id))){message('확정된 수업일 또는 월 정산이 끝난 수업은 변경할 수 없습니다.');return}
+ if(isClosed(date)||isDayFixed(date,editingSession?.trainer_id||ownTrainer?.id)){message('확정된 수업일 또는 월 정산이 끝난 수업은 변경할 수 없습니다.');return}
  let picker=$('member-picker');if(!picker){picker=document.createElement('dialog');picker.id='member-picker';picker.className='member-picker';document.body.append(picker)}
  const queuedLesson=pendingLessons.find(x=>x.date===date&&x.time===time);
  let selectedEnrollmentId=editingSession?.enrollment_id||queuedLesson?.enrollmentId||null;
