@@ -123,7 +123,9 @@ Deno.serve(async req => {
     }
     return answer({ error: '지원하지 않는 요청입니다.' }, 400, origin);
   } catch (error) {
-    return answer({ error: error instanceof Error ? error.message : '계정 처리 중 오류가 발생했습니다.' }, 500, origin);
+    const detail = error && typeof error === 'object' && 'message' in error
+      ? String(error.message) : '계정 처리 중 오류가 발생했습니다.';
+    console.error('trainer-accounts failed:', detail);
+    return answer({ error: detail }, 500, origin);
   }
 });
-
