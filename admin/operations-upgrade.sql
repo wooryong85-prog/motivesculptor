@@ -41,14 +41,29 @@ create table if not exists public.completed_sessions (
 );
 create index if not exists completed_sessions_date_idx on public.completed_sessions(session_date desc);
 create index if not exists completed_sessions_enrollment_idx on public.completed_sessions(enrollment_id);
+alter table public.completed_sessions add column if not exists starts_at time not null default '09:00';
+alter table public.completed_sessions add column if not exists duration_minutes integer not null default 50 check (duration_minutes in (30,50));
+create index if not exists completed_sessions_trainer_time_idx on public.completed_sessions(trainer_id,session_date,starts_at);
 
 -- The trigger keeps trainer assignment and total completed sessions consistent even
 -- when concurrent requests are submitted from different browsers.
 create or replace function public.validate_completed_session() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
-declare booked public.member_enrollments%rowtype; used integer; share numeric;
+declare booked public.member_enrollments%rowtype; used integer; share numeric; opens time; closes time;
 begin
+ if extract(dow from new.session_date)=0 then opens='10:00';closes='18:00';
+ elsif extract(dow from new.session_date)=6 then opens='10:00';closes='16:00';
+ else opens='09:00';closes='23:00'; end if;
+ if new.starts_at<opens or new.starts_at+make_interval(mins=>new.duration_minutes)>closes then
+   raise exception '운영시간 안에서 수업 시간을 선택하세요';
+ end if;
+ if exists(select 1 from public.completed_sessions s
+   where s.trainer_id=new.trainer_id and s.session_date=new.session_date and s.id is distinct from new.id
+   and s.starts_at<new.starts_at+make_interval(mins=>new.duration_minutes)
+   and new.starts_at<s.starts_at+make_interval(mins=>s.duration_minutes)) then
+   raise exception '같은 시간에 이미 등록된 수업이 있습니다';
+ end if;
  select * into booked from public.member_enrollments where id=new.enrollment_id for update;
  if not found or booked.trainer_id is distinct from new.trainer_id then
    raise exception '수업의 담당 트레이너가 등록 내역과 다릅니다';
