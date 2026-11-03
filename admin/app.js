@@ -13,10 +13,11 @@ const message=s=>$('msg').textContent=s;
 const empty=(id,cols)=>$(id).innerHTML='<tr><td colspan="'+cols+'" class="muted">내역이 없습니다.</td></tr>';
 const mins=t=>{let [h,m]=String(t||'00:00').slice(0,5).split(':').map(Number);return h*60+m};
 const clock=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
-const dateAdd=(date,days)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)};
-const mondayOf=date=>{const d=new Date(date+'T12:00:00'),offset=(d.getDay()+6)%7;d.setDate(d.getDate()-offset);return d.toISOString().slice(0,10)};
+const dateText=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dateAdd=(date,days)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return dateText(d)};
+const mondayOf=date=>{const d=new Date(date+'T12:00:00'),offset=(d.getDay()+6)%7;d.setDate(d.getDate()-offset);return dateText(d)};
 const weekValue=date=>{const d=new Date(mondayOf(date)+'T12:00:00');d.setDate(d.getDate()+3);const first=new Date(d.getFullYear(),0,4);const week=1+Math.round(((d-first)/86400000-(first.getDay()+6)%7)/7);return d.getFullYear()+'-W'+String(week).padStart(2,'0')};
-const mondayFromWeek=week=>{if(!week)return mondayOf(today());const [year,no]=week.split('-W').map(Number),jan4=new Date(year,0,4),offset=(jan4.getDay()+6)%7;jan4.setDate(jan4.getDate()-offset+(no-1)*7);return jan4.toISOString().slice(0,10)};
+const mondayFromWeek=week=>{if(!week)return mondayOf(today());const [year,no]=week.split('-W').map(Number),jan4=new Date(year,0,4),offset=(jan4.getDay()+6)%7;jan4.setDate(jan4.getDate()-offset+(no-1)*7);return dateText(jan4)};
 const statusClass=remaining=>remaining<=2?'low':remaining<=5?'caution':'good';
 function updateProgress(){const e=enrollments.find(x=>x.id===Number($('session-enrollment').value));if(!e){$('progress-state').textContent='회원 선택 후 진행 회차와 남은 수업 수를 확인할 수 있습니다.';$('progress-state').className='progress-state';return}const used=sessions.filter(s=>s.enrollment_id===e.id).reduce((n,s)=>n+Number(s.quantity),0),remaining=Math.max(0,Number(e.session_count)-used);$('progress-state').textContent=(used+1)+'/'+e.session_count+'회 진행 예정 · '+remaining+'회 남음';$('progress-state').className='progress-state '+statusClass(remaining);}
 function renderWeeklySchedule(){
