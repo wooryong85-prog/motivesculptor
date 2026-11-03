@@ -51,9 +51,6 @@ declare e public.member_enrollments%rowtype; used_count integer; refund_day date
 begin
   if not public.is_center_admin() then raise exception '관리자만 환불할 수 있습니다'; end if;
   refund_day:=(now() at time zone 'Asia/Seoul')::date;
-  if exists(select 1 from public.monthly_settlements m where m.month=date_trunc('month',refund_day)::date) then
-    raise exception '이번 달 급여정산이 확정되어 환불을 기록할 수 없습니다';
-  end if;
   select * into e from public.member_enrollments where id=p_enrollment_id for update;
   if not found or e.status<>'active' or e.removed_at is not null then raise exception '환불 가능한 등록이 아닙니다'; end if;
   if p_amount is null or p_amount<>trunc(p_amount) or p_amount<0 or p_amount>e.price then
