@@ -9,7 +9,7 @@ const adminId = '99446214-0f1e-409f-a8c9-efef0ad29075';
 const staffEmail = (id: string) => `${id}@staff.motivegym.co.kr`;
 
 function answer(body: Record<string, unknown>, status = 200, origin = '') {
-  return new Response(JSON.stringify(body), { status, headers: {
+  return new Response(status === 204 ? null : JSON.stringify(body), { status, headers: {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': ['https://motivegym.co.kr', 'https://www.motivegym.co.kr'].includes(origin) ? origin : 'https://motivegym.co.kr',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
