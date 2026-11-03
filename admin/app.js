@@ -8,6 +8,7 @@ const weekControls=document.createElement('div');weekControls.className='week-co
 const won=n=>new Intl.NumberFormat('ko-KR',{style:'currency',currency:'KRW',maximumFractionDigits:0}).format(Math.round(n||0));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date());
+$('annual-year').innerHTML=Array.from({length:51},(_,i)=>2020+i).map(year=>'<option value="'+year+'">'+year+'년</option>').join('');$('annual-year').value=today().slice(0,4);
 const monthRange=()=>{const start=$('month').value+'-01',d=new Date(start+'T12:00:00');d.setMonth(d.getMonth()+1);return [start,new Intl.DateTimeFormat('en-CA').format(d)]};
 const inMonth=(date,start,end)=>date&&date>=start&&date<end;
 const net=e=>e.payment_method==='card'?Number(e.price)/1.1:e.payment_method==='cash'?Number(e.price):0;
@@ -263,7 +264,7 @@ function setTimeOptions(){
  if(times.includes(old))$('session-time').value=old;
  $('hours').textContent=(dow===0?'일요일 10:00–18:00':dow===6?'토요일 10:00–16:00':'평일 09:00–23:00')+' · '+duration+'분 수업을 기록합니다.';
 }
-function view(name){for(const [button,panel] of [['dashboard','dashboard'],['sessions','sessions-panel'],['trainers','trainers-panel'],['departed','departed-panel']]){$('tab-'+button).setAttribute('aria-selected',String(button===name));$(panel).classList.toggle('hidden',button!==name)}}
+function view(name){for(const [button,panel] of [['dashboard','dashboard'],['annual','annual-panel'],['insights','insights-panel'],['member-files','member-files-panel'],['sessions','sessions-panel'],['trainers','trainers-panel'],['departed','departed-panel']]){$('tab-'+button).setAttribute('aria-selected',String(button===name));$(panel).classList.toggle('hidden',button!==name)}}
 function trainerEvaluation(trainer,since,end,cutoff=today()){
  const memberKey=e=>String(e.member_name||'').trim().toLocaleLowerCase();
  const ended=enrollments.filter(e=>e.trainer_id===trainer.id&&e.status!=='refunded'&&e.ends_at>=since&&e.ends_at<end&&e.ends_at<=cutoff);
@@ -312,6 +313,26 @@ function renderMemberFiles(){
  }).join('');
  if(!rows.length)empty('enrollment-list',11);
 }
+function renderAnnual(){
+ const year=$('annual-year').value;
+ const months=Array.from({length:12},(_,i)=>{
+  const key=year+'-'+String(i+1).padStart(2,'0'),registered=enrollments.filter(e=>e.registered_at?.startsWith(key)),refunded=enrollments.filter(e=>e.refunded_at?.startsWith(key)),ended=new Set(enrollments.filter(e=>availableEnrollment(e)&&e.ends_at?.startsWith(key)).map(e=>e.member_name)).size;
+  const renewal=registered.filter(e=>e.is_renewal).length,first=new Set(registered.filter(e=>!e.is_renewal).map(e=>e.member_name)).size,refundAmount=refunded.reduce((sum,e)=>sum+Number(e.refund_amount||0),0);
+  return {key,registered:registered.length,first,renewal,ended,refunds:refunded.length,refundAmount,sales:registered.reduce((sum,e)=>sum+Number(e.price||0),0)-refundAmount};
+ });
+ const total=(field)=>months.reduce((sum,row)=>sum+row[field],0),registered=total('registered'),renewal=total('renewal');
+ $('annual-sales').textContent=won(total('sales'));
+ $('annual-refunds').textContent=won(total('refundAmount'));
+ $('annual-refund-count').textContent=total('refunds')+'건';
+ $('annual-registrations').textContent=registered+'건';
+ $('annual-new').textContent='신규 '+total('first')+'건';
+ $('annual-renewals').textContent=renewal+'건';
+ $('annual-rate').textContent='등록 기준 '+(registered?Math.round(renewal/registered*100):0)+'%';
+ $('annual-ended').textContent=total('ended')+'건';
+ const maximum=Math.max(1,...months.map(row=>Math.abs(row.sales)));
+ $('annual-chart').innerHTML=months.map(row=>'<div class="annual-chart-item" role="listitem" aria-label="'+Number(row.key.slice(5))+'월 순매출 '+won(row.sales)+'"><div class="annual-chart-plot"><span class="annual-chart-bar '+(row.sales<0?'negative':row.sales===0?'empty':'')+'" style="height:'+Math.max(4,Math.round(Math.abs(row.sales)/maximum*100))+'%"></span></div><strong>'+Number(row.key.slice(5))+'월</strong></div>').join('');
+ $('annual-months').innerHTML=months.map(row=>'<tr><th scope="row">'+Number(row.key.slice(5))+'월</th><td>'+row.registered+'건</td><td>'+row.first+'건</td><td>'+row.renewal+'건</td><td>'+row.ended+'건</td><td>'+won(row.refundAmount)+' · '+row.refunds+'건</td><td>'+won(row.sales)+'</td></tr>').join('');
+}
 function render(){
  if(!admin)$('month').value=$('week-year').value+'-'+String($('week-month').value).padStart(2,'0');
  const [start,end]=monthRange(),monthly=enrollments.filter(e=>inMonth(e.registered_at,start,end)),refunded=enrollments.filter(e=>inMonth(e.refunded_at,start,end)),completed=sessions.filter(s=>inMonth(s.session_date,start,end));
@@ -333,9 +354,11 @@ function render(){
   $('summary').innerHTML=trainers.filter(t=>t.active||monthly.some(e=>e.trainer_id===t.id)||refunded.some(e=>e.trainer_id===t.id)||completed.some(s=>s.trainer_id===t.id)).map(t=>{let es=monthly.filter(e=>e.trainer_id===t.id),rs=refunded.filter(e=>e.trainer_id===t.id),ss=completed.filter(s=>s.trainer_id===t.id),noShow=ss.filter(s=>s.attendance_status==='no_show').reduce((n,s)=>n+Number(s.quantity),0),service=ss.filter(s=>s.session_type==='service').length,commission=ss.reduce((n,s)=>n+Number(s.payout_amount),0);return '<tr><td>'+esc(t.name)+'</td><td>'+won(es.reduce((n,e)=>n+Number(e.price),0)-rs.reduce((n,e)=>n+Number(e.refund_amount||0),0))+'</td><td>'+ss.reduce((n,s)=>n+Number(s.quantity),0)+'회'+(noShow?' · NOSHOW '+noShow+'회':'')+(service?' · 서비스 '+service+'회':'')+'</td><td>'+won(commission+Number(t.base_salary))+'</td><td>'+(es.length?Math.round(100*es.filter(e=>e.is_renewal).length/es.length):0)+'%</td></tr>'}).join('')||'<tr><td colspan="5">트레이너 없음</td></tr>';
   renderMemberFiles();
   $('trainer-list').innerHTML=trainers.filter(t=>t.active).map(t=>'<tr><td>'+esc(t.name)+'</td><td>'+esc(t.login_id)+'</td><td><input aria-label="'+esc(t.name)+' 근무 시작일" type="date" value="'+(t.hire_date||'')+'" data-hire="'+t.id+'"></td><td>'+(t.auth_user_id?(t.password_change_required?'비밀번호 변경 필요':'발급 완료'):'미발급')+'</td><td><input aria-label="'+esc(t.name)+' 초기화 비밀번호" type="password" minlength="6" maxlength="72" value="111111" data-initial="'+t.id+'"></td><td><input aria-label="'+esc(t.name)+' 정산 비율" type="number" min="0" max="100" value="'+Math.round(Number(t.share_rate)*100)+'" data-share="'+t.id+'"></td><td><input aria-label="'+esc(t.name)+' 기본급" type="number" min="0" value="'+Number(t.base_salary)+'" data-base="'+t.id+'"></td><td>'+('사용')+'</td><td><button class="small secondary" data-reset-trainer="'+t.id+'">계정 초기화</button> <button class="small" data-save-trainer="'+t.id+'">저장</button> <button class="small secondary" data-trainer-id="'+t.id+'">'+('삭제')+'</button></td></tr>').join('');
-  renderRenewalCharts(start);
-  renderEvaluationChart(start,end);
+  const current=today().slice(0,7)+'-01',currentEnd=dateText(new Date(Number(current.slice(0,4)),Number(current.slice(5,7)),1,12));
+  renderRenewalCharts(current);
+  renderEvaluationChart(current,currentEnd);
   renderDepartedTrainers();
+  renderAnnual();
  }
  const allowed=enrollments.filter(e=>availableEnrollment(e)&&isActiveTrainer(e.trainer_id)&&(admin||e.trainer_id===ownTrainer?.id)&&e.payment_method);
  const enrollmentOptions='<option value="">선택하세요</option>'+allowed.filter(e=>e.trainer_id).map(e=>{const used=sessions.filter(s=>s.enrollment_id===e.id).reduce((n,s)=>n+Number(s.quantity),0),next=used+1;return '<option value="'+e.id+'" '+(next>e.session_count?'disabled':'')+'>'+esc(e.member_name)+' · '+next+'/'+e.session_count+(next>e.session_count?' (완료)':'')+'</option>'}).join('');$('session-enrollment').innerHTML=enrollmentOptions;$('schedule-member').innerHTML=enrollmentOptions;
@@ -383,7 +406,7 @@ function beginMemberEdit(){
  const hasLessons=sessions.some(s=>s.enrollment_id===e.id),settled=isClosed(e.registered_at),lockTerms=hasLessons||settled;
  editingEnrollmentId=e.id;$('member').value=e.member_name;$('trainer').value=e.trainer_id||'';$('registered').value=e.registered_at;$('ends').value=e.ends_at||'';$('sessions').value=e.session_count;$('contract-duration').value=e.contract_duration_minutes||'';$('price').value=e.price;$('payment').value=e.payment_method||'';$('type').value=e.is_renewal?'renewal':'new';
  for(const id of ['trainer','registered','sessions','contract-duration','price','payment'])$(id).disabled=lockTerms;
- $('type').disabled=settled;$('enrollment-form').querySelector('button').textContent='수정 내역 저장';$('member-file').close();$('enrollment-form').scrollIntoView({behavior:'smooth'});
+ $('type').disabled=settled;$('enrollment-form').querySelector('button').textContent='수정 내역 저장';$('member-file').close();view('dashboard');$('enrollment-form').scrollIntoView({behavior:'smooth'});
  message(lockTerms?'기록이 있는 계약은 이름·종료일 등 수정 가능한 항목만 변경할 수 있습니다.':'회원 등록 내용을 수정 중입니다.');
 }
 $('login-form').onsubmit=async ev=>{ev.preventDefault();const id=$('email').value.trim(),email=id.includes('@')?id:staffEmail(id);const {error}=await db.auth.signInWithPassword({email,password:$('password').value});$('password').value='';if(error)message('로그인 정보를 확인해 주세요.');else{message('');await show()}};
@@ -391,8 +414,8 @@ $('change-password-trigger').onclick=()=>{$('app').classList.add('hidden');$('pa
 $('password-cancel').onclick=()=>{$('change-password-form').reset();$('password-panel').classList.add('hidden');$('app').classList.remove('hidden')};
 $('change-password-form').onsubmit=async ev=>{ev.preventDefault();const current=$('current-password').value,next=$('new-password').value,confirm=$('confirm-password').value;if(next!==confirm){$('password-error').textContent='새 비밀번호가 서로 다릅니다.';return}if(next.length<8||next==='111111'||next===current){$('password-error').textContent='새 비밀번호는 8자 이상이며 초기·현재 비밀번호와 달라야 합니다.';return}try{await accountAction({action:'change_password',currentPassword:current,newPassword:next})}catch(error){$('password-error').textContent=error.message;return}ev.target.reset();await db.auth.signOut();await show();message('비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인하세요.')};
 $('logout').onclick=async()=>{await db.auth.signOut();await show()};
-for(const name of ['dashboard','sessions','trainers','departed'])$('tab-'+name).onclick=()=>view(name);
-$('refresh').onclick=()=>load();$('month').onchange=render;
+for(const name of ['dashboard','annual','insights','member-files','sessions','trainers','departed'])$('tab-'+name).onclick=()=>view(name);
+$('refresh').onclick=()=>load();$('month').onchange=render;$('annual-year').onchange=renderAnnual;
 $('enrollment-form').onsubmit=async ev=>{ev.preventDefault();const tid=Number($('trainer').value),trainer=trainers.find(t=>t.id===tid);if(!trainer){message('담당 트레이너를 확인하세요.');return}if($('ends').value<$('registered').value){message('종료일은 등록일 이후로 입력하세요.');return}const record={member_name:$('member').value.trim(),trainer_id:tid,trainer_name:trainer.name,registered_at:$('registered').value,ends_at:$('ends').value,session_count:Number($('sessions').value),contract_duration_minutes:Number($('contract-duration').value),price:Number($('price').value),payment_method:$('payment').value,is_renewal:$('type').value==='renewal'};const result=editingEnrollmentId?await db.from('member_enrollments').update(record).eq('id',editingEnrollmentId):await db.from('member_enrollments').insert(record);if(result.error){message('등록 저장 실패: '+result.error.message);return}editingEnrollmentId=null;ev.target.reset();for(const field of ev.target.querySelectorAll('input,select'))field.disabled=false;$('registered').value=today();ev.target.querySelector('button').textContent='등록 내역 저장';message('등록 내역을 저장했습니다.');await load()};
 $('enrollment-list').onclick=ev=>{const b=ev.target.closest('button[data-enrollment-id]');if(b)openMemberFile(Number(b.dataset.enrollmentId))};
 $('member-search').oninput=renderMemberFiles;$('show-removed').onchange=renderMemberFiles;
