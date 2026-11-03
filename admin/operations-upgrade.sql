@@ -81,13 +81,22 @@ using (public.is_center_admin() or (active and login_id = split_part((auth.jwt()
 create policy trainers_admin_insert on public.trainers for insert to authenticated with check (public.is_center_admin());
 create policy trainers_admin_update on public.trainers for update to authenticated using (public.is_center_admin()) with check (public.is_center_admin());
 create policy enrollments_read on public.member_enrollments for select to authenticated
-using (public.is_center_admin() or exists(select 1 from public.trainers t where t.id=trainer_id));
+using (public.is_center_admin() or exists(
+ select 1 from public.trainers t where t.id=trainer_id and t.active
+ and t.login_id=split_part((auth.jwt()->>'email'),'@',1)
+ and (auth.jwt()->>'email')=t.login_id || '@staff.motivegym.co.kr));
 create policy enrollments_admin_insert on public.member_enrollments for insert to authenticated with check (public.is_center_admin());
 create policy enrollments_admin_update on public.member_enrollments for update to authenticated using (public.is_center_admin()) with check (public.is_center_admin());
 create policy sessions_read on public.completed_sessions for select to authenticated
-using (public.is_center_admin() or exists(select 1 from public.trainers t where t.id=trainer_id));
+using (public.is_center_admin() or exists(
+ select 1 from public.trainers t where t.id=trainer_id and t.active
+ and t.login_id=split_part((auth.jwt()->>'email'),'@',1)
+ and (auth.jwt()->>'email')=t.login_id || '@staff.motivegym.co.kr));
 create policy sessions_insert on public.completed_sessions for insert to authenticated
-with check (created_by=auth.uid() and (public.is_center_admin() or exists(select 1 from public.trainers t where t.id=trainer_id)));
+with check (created_by=auth.uid() and (public.is_center_admin() or exists(
+ select 1 from public.trainers t where t.id=trainer_id and t.active
+ and t.login_id=split_part((auth.jwt()->>'email'),'@',1)
+ and (auth.jwt()->>'email')=t.login_id || '@staff.motivegym.co.kr)));
 
 grant usage on schema public to authenticated;
 grant select,insert,update on public.trainers to authenticated;
