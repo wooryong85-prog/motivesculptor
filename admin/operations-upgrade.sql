@@ -106,5 +106,5 @@ grant usage,select on sequence public.trainers_id_seq to authenticated;
 grant usage,select on sequence public.member_enrollments_id_seq to authenticated;
 grant usage,select on sequence public.completed_sessions_id_seq to authenticated;
 commit;
-notify pgrst, 'reload schema';
+select pg_notify('pgrst', 'reload schema');
 
