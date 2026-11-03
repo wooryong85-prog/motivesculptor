@@ -307,6 +307,13 @@ function renderMemberFiles(){
 function render(){
  if(!admin)$('month').value=$('week-year').value+'-'+String($('week-month').value).padStart(2,'0');
  const [start,end]=monthRange(),monthly=enrollments.filter(e=>inMonth(e.registered_at,start,end)),refunded=enrollments.filter(e=>inMonth(e.refunded_at,start,end)),completed=sessions.filter(s=>inMonth(s.session_date,start,end));
+ if(!admin&&ownTrainer){
+  const current=today().slice(0,7),ownRegistered=enrollments.filter(e=>e.trainer_id===ownTrainer.id&&e.registered_at?.startsWith(current)),ownRefunded=enrollments.filter(e=>e.trainer_id===ownTrainer.id&&e.refunded_at?.startsWith(current)),renewals=ownRegistered.filter(e=>e.is_renewal).length;
+  $('trainer-sales').textContent=won(ownRegistered.reduce((sum,e)=>sum+Number(e.price||0),0)-ownRefunded.reduce((sum,e)=>sum+Number(e.refund_amount||0),0));
+  $('trainer-sales-note').textContent=current.replace('-','년 ')+'월 · 등록 '+ownRegistered.length+'건 · 환불 반영';
+  $('trainer-renewal').textContent=ownRegistered.length?Math.round(renewals/ownRegistered.length*100)+'%':'—';
+  $('trainer-renewal-note').textContent='재등록 '+renewals+'건 / 등록 '+ownRegistered.length+'건';
+ }
  $('settlement-state').textContent=isClosed(start)?'정산 확정 · 수업 수정 잠김':'정산 전 · 수업 수정 가능';$('finalize-month').disabled=isClosed(start);$('finalize-month').textContent=isClosed(start)?'확정 완료':'급여정산 확정';
  if(admin){
   const renew=monthly.filter(e=>e.is_renewal).length;
@@ -349,7 +356,7 @@ async function show(){
   if(state.mustChange){$('login').classList.add('hidden');$('app').classList.add('hidden');$('password-panel').classList.remove('hidden');$('password-guide').textContent='초기 비밀번호로 로그인했습니다. 수업 기록을 보기 전에 새 비밀번호를 설정하세요.';$('password-cancel').classList.add('hidden');return}
   const loginId=user.email?.toLowerCase().endsWith('@staff.motivegym.co.kr')?user.email.toLowerCase().split('@')[0]:'';const {data,error}=await db.from('trainers').select('id,name,login_id,active').eq('login_id',loginId).eq('active',true).maybeSingle();if(error||!data){await db.auth.signOut();message('등록된 직원 계정이 아닙니다. 관리자에게 계정 연결을 요청하세요.');$('login').classList.remove('hidden');$('app').classList.add('hidden');return}ownTrainer=data
  }
- $('login').classList.add('hidden');$('app').classList.remove('hidden');$('change-password-trigger').classList.toggle('hidden',admin);document.querySelectorAll('.admin-only').forEach(el=>el.classList.toggle('hidden',!admin));$('heading').textContent=admin?'센터 관리':'수업 기록';$('who').textContent=admin?'관리자':ownTrainer.name+' 트레이너';view(admin?'dashboard':'sessions');await load();
+ $('login').classList.add('hidden');$('app').classList.remove('hidden');$('change-password-trigger').classList.toggle('hidden',admin);$('trainer-kpis').classList.toggle('hidden',admin);document.querySelectorAll('.admin-only').forEach(el=>el.classList.toggle('hidden',!admin));$('heading').textContent=admin?'센터 관리':'수업 기록';$('who').textContent=admin?'관리자':ownTrainer.name+' 트레이너';view(admin?'dashboard':'sessions');await load();
 }
 function openMemberFile(id){
  if(!admin)return;
